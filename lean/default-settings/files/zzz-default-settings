@@ -1,0 +1,31 @@
+#!/bin/sh
+
+uci -q batch <<-EOF
+	set system.@system[0].timezone='CST-8'
+	set system.@system[0].zonename='Asia/Shanghai'
+
+	delete system.ntp.server
+	add_list system.ntp.server='ntp1.aliyun.com'
+	add_list system.ntp.server='ntp.tencent.com'
+	add_list system.ntp.server='ntp.ntsc.ac.cn'
+	add_list system.ntp.server='time.apple.com'
+EOF
+uci commit system
+
+
+
+sed -i '/DISTRIB_REVISION/d' /etc/openwrt_release
+echo "DISTRIB_REVISION='R25.10.10'" >> /etc/openwrt_release
+sed -i '/DISTRIB_DESCRIPTION/d' /etc/openwrt_release
+echo "DISTRIB_DESCRIPTION='BILLY '" >> /etc/openwrt_release
+
+sed -i '/OPENWRT_RELEASE/d' /usr/lib/os-release
+echo 'OPENWRT_RELEASE="BILLY R25.10.10"' >> /usr/lib/os-release
+
+sed -i '/log-facility/d' /etc/dnsmasq.conf
+echo "log-facility=/dev/null" >> /etc/dnsmasq.conf
+
+rm -rf /tmp/luci-modulecache/
+rm -f /tmp/luci-indexcache
+
+exit 0
