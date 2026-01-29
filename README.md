@@ -1,97 +1,121 @@
-# OpenWrt 自动化构建项目
+# 🚀 OpenWrt 自动化构建项目
 
-这是一个用于自动化编译和构建 OpenWrt 固件的项目，支持多个版本的 OpenWrt 源码（包括 LEDE 和官方版本），并提供完整的 CI/CD 流程。
+<div align="center">
 
-## 项目特性
+[![Build Status](https://img.shields.io/github/workflow/status/coolsnowwolf/lede/build-openwrt?logo=github&style=for-the-badge)](https://github.com/coolsnowwolf/lede/actions)
+[![License](https://img.shields.io/github/license/mashape/apistatus.svg?style=for-the-badge)](https://github.com/QiuSimons/OpenWrt_Auto_Build/blob/master/LICENSE)
+[![Lastest Release](https://img.shields.io/github/release/QiuSimons/OpenWrt_Auto_Build.svg?style=for-the-badge&color=informational)](https://github.com/QiuSimons/OpenWrt_Auto_Build/releases/latest)
 
-- 支持 LEDE 和官方 OpenWrt 源码的自动编译
-- 提供完整版和迷你版两种固件构建选项
-- 集成 GitHub Actions 实现自动化构建流程
-- 支持定时构建和手动触发构建
-- 包含多种常用插件和主题
-- 可自定义网络配置和系统设置
+**一键编译 OpenWrt 固件** | **自动化构建流程** | **支持多版本源码**
 
-## 构建目标
+</div>
+
+---
+
+## ✨ 项目特性
+
+- 🔄 **持续集成** - 集成 GitHub Actions 实现自动化构建流程
+- 📦 **多源码支持** - 支持 LEDE 和官方 OpenWrt 源码的自动编译
+- 🎯 **双重版本** - 提供完整版和迷你版两种固件构建选项
+- ⏰ **定时构建** - 支持定时构建和手动触发构建
+- 🧩 **丰富插件** - 包含多种常用插件和优化配置
+- 🎨 **主题美化** - 预装 Argon 主题并优化界面体验
+
+---
+
+## 📋 构建目标
 
 项目提供了以下几种构建工作流：
 
-### 1. X86_64 Full LEDE
-- 基于 Lean's LEDE 源码的完整版固件
-- 包含所有常用功能和插件
-- 工作流文件：[X86_64-LEDE.yml](.github/workflows/X86_64-LEDE.yml)
+| 类型 | 描述 | 特点 | 工作流文件 |
+|------|------|-----|------------|
+| 🖥️ **X86_64 Full LEDE** | 基于 Lean's LEDE 源码的完整版固件 | 包含所有常用功能和插件 | [X86_64-LEDE.yml](.github/workflows/X86_64-LEDE.yml) |
+| 💻 **X86_64 Mini LEDE** | 基于 Lean's LEDE 源码的精简版固件 | 只保留基本功能，体积更小 | [X86_64-Mini-LEDE.yml](.github/workflows/X86_64-Mini-LEDE.yml) |
+| 🔀 **X86_64 Combined LEDE** | 将完整版和迷你版合并的构建 | 一次构建获得两个版本的固件 | [X86_64-Combined-LEDE.yml](.github/workflows/X86_64-Combined-LEDE.yml) |
+| 🌐 **X86_64 Combined Official** | 基于官方 OpenWrt 源码的构建 | 支持官方 OpenWrt 25.12 分支 | [X86_64-Combined-Official.yml](.github/workflows/X86_64-Combined-Official.yml) |
+| 🧹 **清理旧工作流** | 定期清理过期的构建记录 | 自动清理过期的 GitHub Actions 记录 | [Delete-Old-Workflows.yml](.github/workflows/Delete-Old-Workflows.yml) |
 
-### 2. X86_64 Mini LEDE
-- 基于 Lean's LEDE 源码的精简版固件
-- 只保留基本功能，体积更小
-- 工作流文件：[X86_64-Mini-LEDE.yml](.github/workflows/X86_64-Mini-LEDE.yml)
+---
 
-### 3. X86_64 Combined LEDE
-- 将完整版和迷你版合并的构建
-- 一次构建获得两个版本的固件
-- 工作流文件：[X86_64-Combined-LEDE.yml](.github/workflows/X86_64-Combined-LEDE.yml)
+## 🧩 包含的插件和功能
 
-### 4. X86_64 Combined Official
-- 基于官方 OpenWrt 源码的构建
-- 支持官方 OpenWrt 25.12 分支
-- 工作流文件：[X86_64-Combined-Official.yml](.github/workflows/X86_64-Combined-Official.yml)
+### 🔧 系统插件
+- **OpenAppFilter** - 应用过滤
+- **Openlist** - 网盘挂载工具
+- **NetData** - 系统监控
+- **PassWall** - 科学上网解决方案
 
-### 5. 清理旧工作流
-- 定期清理过期的 GitHub Actions 工作流记录
-- 工作流文件：[Delete-Old-Workflows.yml](.github/workflows/Delete-Old-Workflows.yml)
+### 🌐 网络工具
+- **AdGuard Home** - 广告拦截
+- **MosDNS** - DNS 解析
+- **网速测试工具** - 网络速度检测
 
-## 包含的插件和功能
+### 🎨 界面优化
+- **Argon 主题** - 带自定义背景图片
+- **Luci 界面优化** - 提升用户体验
+- **版本号显示** - 显示为编译日期格式
 
-### 插件列表
-- OpenAppFilter (应用过滤)
-- Openlist (网盘挂载工具)
-- AdGuard Home (广告拦截)
-- NetData (系统监控)
-- MosDNS (DNS 解析)
-- PassWall (科学上网)
-- 网速测试工具
-
-### 主题和界面
-- Argon 主题 (带自定义背景图片)
-- Luci 界面优化
-
-### 系统优化
+### ⚡ 系统优化
 - 自动设置默认 IP 地址
-- 版本号显示为编译日期
 - 优化的系统默认设置
+- 网络性能调优 ([autocore](file:///Volumes/DATA/Code/Vscode/OpenWrt_Auto_Build/lean/autocore/files/x86/autocore))
 
-## 配置文件
+---
 
-项目包含四种不同的配置文件：
-- [x86_64.config](configs/x86_64.config) - LEDE 完整版配置
-- [x86_64-mini.config](configs/x86_64-mini.config) - LEDE 迷你版配置
-- [x86_64-official.config](configs/x86_64-official.config) - 官方版完整配置
-- [x86_64-official-mini.config](configs/x86_64-official-mini.config) - 官方版迷你配置
+## ⚙️ 配置文件
 
-## 自定义脚本
+| 配置文件 | 用途 | 链接 |
+|----------|------|------|
+| x86_64.config | LEDE 完整版配置 | [查看](configs/x86_64.config) |
+| x86_64-mini.config | LEDE 迷你版配置 | [查看](configs/x86_64-mini.config) |
+| x86_64-official.config | 官方版完整配置 | [查看](configs/x86_64-official.config) |
+| x86_64-official-mini.config | 官方版迷你配置 | [查看](configs/x86_64-official-mini.config) |
 
-### diy-feeds.sh
+---
+
+## 🛠️ 自定义脚本
+
+### [diy-feeds.sh](file:///Volumes/DATA/Code/Vscode/OpenWrt_Auto_Build/diy-feeds.sh)
 用于添加额外的 feeds 源，如 PassWall 插件源。
 
-### diy-full.sh 和 diy-mini.sh
+### [diy-full.sh](file:///Volumes/DATA/Code/Vscode/OpenWrt_Auto_Build/diy-full.sh) 和 [diy-mini.sh](file:///Volumes/DATA/Code/Vscode/OpenWrt_Auto_Build/diy-mini.sh)
 用于自定义固件配置，包括：
 - 添加额外插件
 - 更换主题背景
 - 修改版本号显示
 - 修复特定问题
 
-### init-settings.sh
+### [init-settings.sh](file:///Volumes/DATA/Code/Vscode/OpenWrt_Auto_Build/patch/init-settings.sh)
 在首次启动时应用默认设置，如主题配置。
 
-## 构建流程
+---
 
-1. **环境准备**：检查服务器性能、释放磁盘空间、安装必要软件包
-2. **代码获取**：从指定仓库和分支克隆 OpenWrt 源码
-3. **依赖处理**：安装 feeds、应用补丁、下载依赖包
-4. **编译配置**：应用自定义设置和配置
-5. **固件编译**：使用多线程进行编译
-6. **成果整理**：打包固件并上传到 Release 或作为构件保存
+## 🏗️ 构建流程
 
-## 使用方法
+```mermaid
+graph LR
+A[环境准备] --> B[代码获取]
+B --> C[依赖处理]
+C --> D[编译配置]
+D --> E[固件编译]
+E --> F[成果整理]
+F --> G[固件发布]
+
+style A fill:#8bc34a
+style E fill:#ff9800
+style G fill:#2196f3
+```
+
+1. **环境准备** - 检查服务器性能、释放磁盘空间、安装必要软件包
+2. **代码获取** - 从指定仓库和分支克隆 OpenWrt 源码
+3. **依赖处理** - 安装 feeds、应用补丁、下载依赖包
+4. **编译配置** - 应用自定义设置和配置
+5. **固件编译** - 使用多线程进行编译
+6. **成果整理** - 打包固件并上传到 Release 或作为构件保存
+
+---
+
+## 🚀 使用方法
 
 ### 手动触发构建
 在 GitHub Actions 页面选择对应的工作流，点击 "Run workflow" 即可开始构建。
@@ -102,19 +126,35 @@
 ### 自定义构建
 修改配置文件或自定义脚本，然后提交更改即可触发新的构建。
 
-## 环境要求
+---
 
-- Ubuntu 22.04 (GitHub Actions 环境)
-- 至少 4 核 CPU，推荐 8GB 以上内存
-- 足够的磁盘空间用于编译过程
+## 🛡️ 环境要求
 
-## 注意事项
+| 组件 | 要求 | 备注 |
+|------|------|------|
+| 操作系统 | Ubuntu 22.04 | GitHub Actions 环境 |
+| CPU | 至少 4 核 | 推荐 8 核或更多 |
+| 内存 | 8GB 以上 | 编译过程需要大量内存 |
+| 磁盘空间 | 20GB 以上 | 编译过程占用大量空间 |
 
-- 编译过程中需要大量磁盘空间和计算资源
-- 定期清理旧的构建记录以节省存储空间
-- 根据实际需求选择完整版或迷你版构建
-- 可通过修改配置文件自定义插件和功能
+---
 
-## 许可证
+## 📝 注意事项
 
-本项目遵循 [LICENSE 文件](LICENSE) 的条款。
+⚠️ **编译过程中需要大量磁盘空间和计算资源**  
+⚠️ **定期清理旧的构建记录以节省存储空间**  
+⚠️ **根据实际需求选择完整版或迷你版构建**  
+⚠️ **可通过修改配置文件自定义插件和功能**  
+⚠️ **请遵守当地法律法规使用网络相关功能**
+
+---
+
+## 🤝 贡献
+
+欢迎提交 Issue 和 Pull Request 来帮助改进此项目！
+
+---
+
+## 📜 许可证
+
+本项目遵循 [GPLv2 License](LICENSE)，仅供学习交流使用。
