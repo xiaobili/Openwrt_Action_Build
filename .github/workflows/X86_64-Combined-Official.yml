@@ -127,7 +127,7 @@ jobs:
           df -hT $GITHUB_WORKSPACE
           git clone $REPO_URL -b $REPO_BRANCH openwrt
           cd openwrt
-          git clone https://github.com/xiaobili/openwrt_settings.git package/lean
+          cp -r $GITHUB_WORKSPACE/lean package/lean
           echo "OPENWRT_PATH=$PWD" >> $GITHUB_ENV
           COMMIT_AUTHOR=$(git show -s --date=short --format="作者: %an")
           echo "COMMIT_AUTHOR=$COMMIT_AUTHOR" >> $GITHUB_ENV
@@ -221,7 +221,7 @@ jobs:
           rm -rf $OPENWRT_PATH
           git clone $REPO_URL -b $REPO_BRANCH openwrt
           cd $OPENWRT_PATH
-          git clone https://github.com/xiaobili/openwrt_settings.git package/lean
+          cp -r $GITHUB_WORKSPACE/lean package/lean
           # 复制迷你版配置
           cp $GITHUB_WORKSPACE/$CONFIG_MINI .config
           make defconfig > /dev/null 2>&1
