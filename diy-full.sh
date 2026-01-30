@@ -30,10 +30,6 @@ git clone --depth=1 https://github.com/destan19/OpenAppFilter.git package/OpenAp
 git clone --depth=1 https://github.com/sbwml/luci-app-openlist2.git package/openlist
 ## netspeedtest
 git clone --depth=1 https://github.com/sirpdboy/luci-app-netspeedtest.git package/netspeedtest
-## mosdns
-find ./ | grep Makefile | grep mosdns | xargs rm -f
-git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
-
 # 更改Argon 主题背景
 cp -f $GITHUB_WORKSPACE/images/background.jpg feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/img/bg1.jpg
 
@@ -50,4 +46,7 @@ if [[ $GITHUB_WORKFLOW == *"immortalWrt"* ]]; then
   # 执行 scripts/update-default.sh 脚本
   $GITHUB_WORKSPACE/scripts/update-emortal.sh
   git clone --depth=1 https://github.com/rufengsuixing/luci-app-adguardhome.git package/adguardhome
+  ## mosdns
+  find ./ | grep Makefile | grep mosdns | xargs rm -f
+  git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
 fi
