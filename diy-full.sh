@@ -9,9 +9,6 @@
 # TTYD 免登录
 # sed -i 's|/bin/login|/bin/login -f root|g' feeds/packages/utils/ttyd/files/ttyd.config
 
-# 移除要替换的包
-# rm -rf package/OpenAppFilter
-# rm -rf package/openlist
 
 # Git稀疏克隆，只克隆指定目录到本地
 function git_sparse_clone() {

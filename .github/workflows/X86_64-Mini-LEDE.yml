@@ -12,8 +12,7 @@ env:
   DIY_MINI: diy-mini.sh
   CONFIG_MINI: configs/x86_64-mini.config
   INIT_SCRIPT: patch/init-settings.sh
-  MAKE_SCRIPT: scripts/retry-make-nproc.sh
-  DOWNLOAD_SCRIPT: scripts/retry-make-download.sh
+  MAKE_SCRIPT: scripts/retry-make.sh
   CACHE_TOOLCHAIN: true
   UPLOAD_BIN_DIR: false
   FIRMWARE_RELEASE: true
@@ -181,7 +180,7 @@ jobs:
       run: |
         cd $OPENWRT_PATH
         make defconfig
-        $GITHUB_WORKSPACE/$DOWNLOAD_SCRIPT
+        $GITHUB_WORKSPACE/$MAKE_SCRIPT download
         find dl -size -1024c -exec ls -l {} \;
         find dl -size -1024c -exec rm -f {} \;
 
@@ -192,7 +191,7 @@ jobs:
         mkdir -p files/etc/uci-defaults
         cp $GITHUB_WORKSPACE/$INIT_SCRIPT files/etc/uci-defaults/99-init-settings
         echo -e "$(nproc) thread compile"
-        $GITHUB_WORKSPACE/$MAKE_SCRIPT || make -j$(nproc) V=s
+        $GITHUB_WORKSPACE/$MAKE_SCRIPT nproc || make -j$(nproc) V=s
         echo "status=success" >> $GITHUB_OUTPUT
         echo "DATE=$(date +"%Y-%m-%d %H:%M:%S")" >> $GITHUB_ENV
         echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_ENV
