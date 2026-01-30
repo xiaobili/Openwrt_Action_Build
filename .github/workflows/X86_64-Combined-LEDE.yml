@@ -256,7 +256,7 @@ jobs:
           cd $OPENWRT_PATH
           cp $GITHUB_WORKSPACE/$CONFIG_MINI .config
           make defconfig
-          $GITHUB_WORKSPACE/scripts/retry-make-download.sh
+          $GITHUB_WORKSPACE/$DOWNLOAD_SCRIPT
           find dl -size -1024c -exec ls -l {} \;
           find dl -size -1024c -exec rm -f {} \;
 
