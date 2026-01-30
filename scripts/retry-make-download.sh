@@ -22,9 +22,7 @@ while true; do
     # 执行命令并将输出同时保存到变量和显示到终端
     output=$(eval "$COMMAND" 2>&1 | tee /dev/stderr)
     exit_code=${PIPESTATUS[0]}
-    
-    # 显示输出
-    echo "$output"
+
     
     # 检查输出中是否包含常见的下载错误信息
     download_errors=0

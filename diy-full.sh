@@ -45,6 +45,7 @@ fi
 if [[ $GITHUB_WORKFLOW == *"immortalWrt"* ]]; then
   # 执行 scripts/update-default.sh 脚本
   $GITHUB_WORKSPACE/scripts/update-emortal.sh
+  ## AdGuardHome
   git clone --depth=1 https://github.com/rufengsuixing/luci-app-adguardhome.git package/adguardhome
   ## mosdns
   find ./ | grep Makefile | grep mosdns | xargs rm -f
