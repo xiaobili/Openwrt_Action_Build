@@ -38,6 +38,7 @@ if [[ $GITHUB_WORKFLOW == *"LEDE"* ]]; then
   date_version=$(date +"%y.%m.%d")
   orig_version=$(cat "package/lean/default-settings/files/zzz-default-settings" | grep DISTRIB_REVISION= | awk -F "'" '{print $2}')
   sed -i "s/${orig_version}/R${date_version} by billyJR/g" package/lean/default-settings/files/zzz-default-settings
+  echo "成功更新版本信息为: R${date_version}"
 fi
 
 # 如果当前 action 为 immortalwrt
