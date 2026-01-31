@@ -30,7 +30,7 @@ git clone --depth=1 https://github.com/sirpdboy/luci-app-netspeedtest.git packag
 # 更改Argon 主题背景
 cp -f $GITHUB_WORKSPACE/images/background.jpg feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/img/bg1.jpg
 
-ech "当前工作流: $GITHUB_WORKFLOW"
+echo "当前工作流: $GITHUB_WORKFLOW"
 
 # 如果当前 action 为 LEDE
 if [[ $GITHUB_WORKFLOW == *"LEDE"* ]]; then
