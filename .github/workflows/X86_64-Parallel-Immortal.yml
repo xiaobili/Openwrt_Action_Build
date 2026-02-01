@@ -285,8 +285,8 @@ jobs:
           echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_ENV
           echo "FULL_KERNEL_VERSION=$(grep "^kernel " Full_openwrt-x86-64-generic.manifest | awk '{split($3, a, "-"); print a[1]"-"a[2]}')" >> $GITHUB_ENV
           echo "MINI_KERNEL_VERSION=$(grep "^kernel " Mini_openwrt-x86-64-generic.manifest | awk '{split($3, a, "-"); print a[1]"-"a[2]}')" >> $GITHUB_ENV
-          echo "MINI_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' Mini-profiles.json)" >> $GITHUB_ENV
-          echo "FULL_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' Full-profiles.json)" >> $GITHUB_ENV
+          echo "MINI_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' Mini_profiles.json)" >> $GITHUB_ENV
+          echo "FULL_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' Full_profiles.json)" >> $GITHUB_ENV
       - name: 发布固件至 Release (统一)
         uses: softprops/action-gh-release@v2
         with:
@@ -301,6 +301,9 @@ jobs:
             - 📦 编译版本: Full + Mini 组合版本
             - ⚽ 固件源码: ImmortalWrt
             - 💝 源码分支: master
+            - 内核版本
+              - Full: ${{ env.FULL_KERNEL_VERSION }}
+              - Mini: ${{ env.MINI_KERNEL_VERSION }}
             - 🌐 默认地址: 192.168.1.1
             - 🔑 默认密码: 无
             ### 📋 文件说明
