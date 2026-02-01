@@ -3,8 +3,8 @@
 <div align="center">
 
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/xiaobili/Openwrt_Action_Build/X86_64-Parallel-Immortal.yml?style=for-the-badge&logo=openwrt&label=workflow)](https://github.com/xiaobili/Openwrt_Action_Build/actions)
-[![License](https://img.shields.io/github/license/mashape/apistatus.svg?style=for-the-badge&logo=github)](https://github.com/xiaobili/OpenWrt_Auto_Build/blob/master/LICENSE)
-![GitHub Release](https://img.shields.io/github/v/release/xiaobili/Openwrt_Action_Build?display_name=release&style=for-the-badge&logo=github)
+[![License](https://img.shields.io/github/license/mashape/apistatus.svg?style=for-the-badge&logo=github)](https://github.com/xiaobili/OpenWrt_Action_Build/blob/master/LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/xiaobili/Openwrt_Action_Build?display_name=release&style=for-the-badge&logo=github)](https://github.com/xiaobili/Openwrt_Action_Build/releases/latest)
 
 **一键编译 OpenWrt 固件** | **自动化构建流程** | **支持多版本源码**
 
@@ -95,20 +95,6 @@
 
 ## 🏗️ 构建流程
 
-```mermaid
-graph LR
-A[环境准备] --> B[代码获取]
-B --> C[依赖处理]
-C --> D[编译配置]
-D --> E[固件编译]
-E --> F[成果整理]
-F --> G[固件发布]
-
-style A fill:#8bc34a
-style E fill:#ff9800
-style G fill:#2196f3
-```
-
 1. **环境准备** - 检查服务器性能、释放磁盘空间、安装必要软件包
 2. **代码获取** - 从指定仓库和分支克隆 OpenWrt 源码
 3. **依赖处理** - 安装 feeds、应用补丁、下载依赖包
@@ -170,4 +156,4 @@ style G fill:#2196f3
 
 ## 📜 许可证
 
-本项目遵循 [GPLv2 License](LICENSE)，仅供学习交流使用。
+本项目遵循 [MIT License](LICENSE)，仅供学习交流使用。
