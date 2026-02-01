@@ -2,8 +2,11 @@ name: X86_64 Combined ImmortalWrt (Parallel)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: 0 20 * * *
+  workflow_run:
+    workflows:
+      - "X86_64 Combined LEDE (Parallel)"
+    types:
+      - completed
 
 env:
   REPO_URL: https://github.com/immortalwrt/immortalwrt
