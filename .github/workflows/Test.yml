@@ -177,7 +177,7 @@ jobs:
         uses: actions/upload-artifact@main
         with:
           name: firmware-${{ matrix.build_type }}
-          path: $GITHUB_WORKSPACE/firmware/${{ matrix.build_type }}
+          path: ${{github.workspace}}/firmware/${{ matrix.build_type }}
           retention-days: 1
 
   Release:
