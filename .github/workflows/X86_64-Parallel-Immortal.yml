@@ -214,7 +214,6 @@ jobs:
           fi
           tar -zcf Packages-${{ matrix.build_type }}.tar.gz packages 2>/dev/null || true
           rm -rf packages feeds.buildinfo version.buildinfo
-          echo "KERNEL=$(jq -r '.linux_kernel.version // "unknown"' profiles.json)" >> $GITHUB_ENV
           echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
           echo "BUILD_TYPE=${{ matrix.build_type }}" >> $GITHUB_ENV
 
@@ -284,7 +283,10 @@ jobs:
           cd $GITHUB_WORKSPACE/firmware-all
           ls -lah
           echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_ENV
-
+          echo "FULL_KERNEL_VERSION=$(grep "^kernel " Full_openwrt-x86-64-generic.manifest | awk '{split($3, a, "-"); print a[1]"-"a[2]}')" >> $GITHUB_ENV
+          echo "MINI_KERNEL_VERSION=$(grep "^kernel " Mini_openwrt-x86-64-generic.manifest | awk '{split($3, a, "-"); print a[1]"-"a[2]}')" >> $GITHUB_ENV
+          echo "MINI_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' Mini-profiles.json)" >> $GITHUB_ENV
+          echo "FULL_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' Full-profiles.json)" >> $GITHUB_ENV
       - name: 发布固件至 Release (统一)
         uses: softprops/action-gh-release@v2
         with:
@@ -305,6 +307,9 @@ jobs:
             - **Full_*** : Full 完整版本固件
             - **Mini_*** : Mini 精简版本固件
             ### 🧊 固件版本信息
+            - 固件版本: 
+              - Full: ${{ env.FULL_FIRMWARE_VERSION }}
+              - Mini: ${{ env.MINI_FIRMWARE_VERSION }}
             - 固件编译前最后一次 ImmortalWrt 源码更新记录
             - ${{ needs.Prepare.outputs.commit_author }}
             - ${{ needs.Prepare.outputs.commit_date }}
