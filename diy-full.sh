@@ -46,6 +46,7 @@ if [[ $GITHUB_WORKFLOW == *"ImmortalWrt"* ]]; then
   # 执行 scripts/update-default.sh 脚本
   $GITHUB_WORKSPACE/scripts/update-emortal.sh
   ## AdGuardHome
+  echo "正在添加 AdGuardHome..."
   git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome
   ## mosdns
   find ./ | grep Makefile | grep mosdns | xargs rm -f
