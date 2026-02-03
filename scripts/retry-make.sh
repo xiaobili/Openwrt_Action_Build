@@ -5,6 +5,8 @@
 #   - download: 用于处理 make download 失败的情况
 #   - nproc: 用于处理 make -j$(nproc) 编译失败的情况
 
+set -o pipefail
+
 # 显示用法
 usage() {
     echo "用法: $0 [mode] [max_retries] [sleep_between]"
