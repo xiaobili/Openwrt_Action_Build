@@ -122,16 +122,6 @@ jobs:
           echo "--------------------------硬盘信息--------------------------"
           echo "硬盘数量: $(ls /dev/sd* | grep -v [1-9] | wc -l)" && df -hT
 
-      - name: 释放磁盘空间
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
 
       
       - name: 合并磁盘
@@ -154,8 +144,8 @@ jobs:
           chmod +x $GITHUB_WORKSPACE/diy-*.sh
           df -hT $GITHUB_WORKSPACE
           git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt
-          echo "SOURCE_REPO=$REPO_URL" >> $GITHUB_ENV
           echo "OPENWRT_PATH=$PWD/openwrt" >> $GITHUB_ENV
+          echo REPO_URL=$REPO_URL >> $GITHUB_ENV
 
       - name: 生成编译变量
         env:
@@ -356,16 +346,6 @@ jobs:
           echo "--------------------------硬盘信息--------------------------"
           echo "硬盘数量: $(ls /dev/sd* | grep -v [1-9] | wc -l)" && df -hT
 
-      - name: 释放磁盘空间
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
 
 
 
@@ -390,15 +370,7 @@ jobs:
           df -hT $GITHUB_WORKSPACE
           git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt
           echo "OPENWRT_PATH=$PWD/openwrt" >> $GITHUB_ENV
-          echo "SOURCE_REPO"=$REPO_URL >> $GITHUB_ENV
-          COMMIT_AUTHOR=$(git show -s --date=short --format="作者: %an")
-          echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
-          COMMIT_DATE=$(git show -s --date=short --format="时间: %ci")
-          echo "commit_date=$COMMIT_DATE" >> $GITHUB_OUTPUT
-          COMMIT_MESSAGE=$(git show -s --date=short --format="内容: %s")
-          echo "commit_message=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
-          COMMIT_HASH=$(git show -s --date=short --format="hash: %H")
-          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+          echo "REPO_URL=$REPO_URL" >> $GITHUB_ENV
 
       - name: 生成编译变量
         env:

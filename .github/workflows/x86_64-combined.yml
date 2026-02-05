@@ -70,9 +70,6 @@ jobs:
           REPO_URL: https://github.com/coolsnowwolf/lede.git
           REPO_BRANCH: master
         run: |
-          chmod +x $GITHUB_WORKSPACE/scripts/*.sh
-          chmod +x $GITHUB_WORKSPACE/patch/*.sh
-          chmod +x $GITHUB_WORKSPACE/diy-*.sh
           df -hT $GITHUB_WORKSPACE
           git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt
           cd openwrt
@@ -165,6 +162,7 @@ jobs:
           df -hT $GITHUB_WORKSPACE
           git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt
           echo "OPENWRT_PATH=$PWD/openwrt" >> $GITHUB_ENV
+          echo REPO_URL=$REPO_URL >> $GITHUB_ENV
 
       - name: 生成编译变量
         env:
@@ -385,9 +383,6 @@ jobs:
           REPO_URL: https://github.com/immortalwrt/immortalwrt
           REPO_BRANCH: master
         run: |
-          chmod +x $GITHUB_WORKSPACE/scripts/*.sh
-          chmod +x $GITHUB_WORKSPACE/patch/*.sh
-          chmod +x $GITHUB_WORKSPACE/diy-*.sh
           df -hT $GITHUB_WORKSPACE
           git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt
           cd openwrt
@@ -480,6 +475,7 @@ jobs:
           df -hT $GITHUB_WORKSPACE
           git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt
           echo "OPENWRT_PATH=$PWD/openwrt" >> $GITHUB_ENV
+          echo "REPO_URL=$REPO_URL" >> $GITHUB_ENV
 
       - name: 生成编译变量
         env:
