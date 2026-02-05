@@ -23,11 +23,11 @@ function git_sparse_clone() {
 # 检测源码类型
 function detect_source_type() {
   # 方法1: 使用 SOURCE_REPO 环境变量（优先级最高）
-  if [[ -n "${env.SOURCE_REPO:-}" ]]; then
-    if [[ "${env.SOURCE_REPO}" == *"lede"* ]]; then
+  if [[ -n "${SOURCE_REPO:-}" ]]; then
+    if [[ "${SOURCE_REPO}" == *"lede"* ]]; then
       echo "lede"
       return 0
-    elif [[ "${env.SOURCE_REPO}" == *"immortalwrt"* ]]; then
+    elif [[ "${SOURCE_REPO}" == *"immortalwrt"* ]]; then
       echo "immortalwrt"
       return 0
     fi
