@@ -2,6 +2,8 @@ name: X86_64 Combined LEDE (Parallel)
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: 0 16 */2 * *
 env:
   REPO_URL: https://github.com/coolsnowwolf/lede.git
   REPO_BRANCH: master

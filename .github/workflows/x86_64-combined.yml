@@ -21,8 +21,6 @@ on:
         - both
         - Full
         - Mini
-  schedule:
-    - cron: 0 16 */2 * *
 
 env:
   # 共享环境变量
