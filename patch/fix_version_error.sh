@@ -13,8 +13,8 @@ function git_sparse_clone() {
 }
 
 # 更新golang版本，修复xray编译错误
-git_sparse_clone master https://github.com/coolsnowwolf/packages feeds packages/lang lang/golang
+git_sparse_clone master https://github.com/openwrt/packages feeds packages/lang lang/golang
 # 克隆rust，修复 rust 编译错误
-git_sparse_clone master https://github.com/coolsnowwolf/packages feeds packages/lang lang/rust
+# git_sparse_clone master https://github.com/openwrt/packages feeds packages/lang lang/rust
 # 克隆mbedtls，修复 shadowsocks-libev 编译错误
-git_sparse_clone master https://github.com/coolsnowwolf/lede package libs package/libs/mbedtls
+# git_sparse_clone master https://github.com/coolsnowwolf/lede package libs package/libs/mbedtls

@@ -160,6 +160,8 @@ jobs:
           $GITHUB_WORKSPACE/patch/update_eth.sh
           $GITHUB_WORKSPACE/$DIY_FEEDS
           ./scripts/feeds update -a
+          # 加载 fix_version
+          $GITHUB_WORKSPACE/$PATCH_SCRIPT
           ./scripts/feeds install -a
 
       - name: 加载自定义配置
