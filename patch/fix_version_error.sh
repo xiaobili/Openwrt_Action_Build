@@ -22,6 +22,9 @@ function fix_golang_version() {
     echo "Skipping golang version fix"
     return 0
   fi
+  rm -rf feeds/packages/lang/golang
+  git clone https://github.com/kenzok8/golang -b 1.25 feeds/packages/lang/golang
+
 
   # 获取xray-core的go版本
   go_version_url="https://raw.githubusercontent.com/XTLS/Xray-core/main/go.mod"
@@ -98,7 +101,7 @@ if [[ -n "${FIX_GOLANG:-}" ]]; then
     if [[ -n "${SOURCE_REPO:-}" ]] && [[ "${SOURCE_REPO}" == *"lede"* ]]; then
       fix_golang_version "feeds/packages/lang/golang/golang/Makefile"
     elif [[ -n "${SOURCE_REPO:-}" ]] && [[ "${SOURCE_REPO}" == *"immortalwrt"* ]]; then
-      fix_golang_version "feeds/packages/lang/golang/golang1.25/Makefile"
+      fix_golang_version "feeds/packages/lang/golang/golang/Makefile"
     else
       echo "Warning: Unable to determine source type"
     fi
