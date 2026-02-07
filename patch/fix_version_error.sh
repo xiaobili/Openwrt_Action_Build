@@ -38,7 +38,7 @@ function fix_golang_version() {
   major_minor=$(echo $go_version | awk -F '.' '{print $1"."$2}')
   patch=$(echo $go_version | awk -F '.' '{print $3}')
 
-  makefile_path="feeds/packages/lang/golang/Makefile"
+  makefile_path="$1"
   if [ -f "$makefile_path" ]; then
     echo "Updating $makefile_path"
     # 备份原始文件
@@ -94,7 +94,12 @@ function fix_ss_libev_version() {
 
 if [[ -n "${FIX_GOLANG:-}" ]]; then
   if [ ${FIX_GOLANG} = true ]; then 
-    fix_golang_version
+    if [[ -n "${SOURCE_REPO:-}" ]] && [[ "${SOURCE_REPO}" == *"lede"* ]]; then
+      fix_golang_version "feeds/packages/lang/golang/golang/Makefile"
+    elif [[ -n "${SOURCE_REPO:-}" ]] && [[ "${SOURCE_REPO}" == *"immortalwrt"* ]]; then
+      fix_golang_version "feeds/packages/lang/golang/golang1.25/Makefile"
+    else
+      echo "Warning: Unable to determine source type"
   fi
 fi
 if [[ -n "${FIX_RUST:-}" ]]; then
