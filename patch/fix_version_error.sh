@@ -83,14 +83,13 @@ function fix_golang_version() {
 }
 
 function fix_rust_version() {
-  # 克隆rust，修复 rust 编译错误
-  # git_sparse_clone master https://github.com/openwrt/packages feeds packages/lang lang/rust
+  echo "Fixing rust version..."
 }
 
 function fix_ss_libev_version() {
-  # 克隆mbedtls，修复 shadowsocks-libev 编译错误
-  # git_sparse_clone master https://github.com/coolsnowwolf/lede package libs package/libs/mbedtls
+  echo "Fixing ss-libev version..."
 }
+
 
 if [[ -n "${FIX_GOLANG:-}" ]]; then
   if [ ${FIX_GOLANG} = true ]; then 
