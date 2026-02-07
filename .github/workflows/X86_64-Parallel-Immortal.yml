@@ -18,7 +18,9 @@ env:
   CACHE_TOOLCHAIN: true
   UPLOAD_BIN_DIR: false
   FIRMWARE_RELEASE: true
-  FIX_VERSION: false
+  FIX_GOLANG: true
+  FIX_RUST: false
+  FIX_SS_LIBEV: false
   TZ: Asia/Shanghai
 
 jobs:
