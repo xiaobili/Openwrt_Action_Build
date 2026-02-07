@@ -1,14 +1,16 @@
 #!/bin/bash
+set -euo pipefail
+
 # Git稀疏克隆，只克隆指定目录到本地
 function git_sparse_clone() {
-  branch="$1" repourl="$2" packfolder="$3" packpath="$4" && shift 4
-  git clone --depth=1 -b $branch --single-branch --filter=blob:none --sparse $repourl
-  repodir=$(echo $repourl | awk -F '/' '{print $(NF)}')
-  mvdir=$(echo $@ | awk -F '/' '{print $(NF)}')
-  cd $repodir && git sparse-checkout set $@
-  rm -rf ../$packfolder/$packpath/$mvdir
-  mv -f $@ ../$packfolder/$packpath/$mvdir
-  cd .. && rm -rf $repodir
+  branch="$1" repourl="$2" packfolder="$3" packpath="$4"; shift 4
+  git clone --depth=1 -b "$branch" --single-branch --filter=blob:none --sparse "$repourl"
+  repodir=$(echo "$repourl" | awk -F '/' '{print $(NF)}')
+  mvdir=$(echo "$@" | awk -F '/' '{print $(NF)}')
+  cd "$repodir" && git sparse-checkout set "$@"
+  rm -rf "../$packfolder/$packpath/$mvdir"
+  mv -f "$@" "../$packfolder/$packpath/$mvdir"
+  cd .. && rm -rf "$repodir"
   echo "clone $repodir done"
 }
 
@@ -24,7 +26,7 @@ function fix_golang_version() {
   # 获取xray-core的go版本
   go_version_url="https://raw.githubusercontent.com/XTLS/Xray-core/main/go.mod"
   echo "Fetching Go version from: $go_version_url"
-  go_version=$(curl -sL $go_version_url | grep "^go" | awk '{print $2}')
+  go_version=$(curl -sL "$go_version_url" | grep "^go" | awk '{print $2}')
 
   if [ -z "$go_version" ]; then
     echo "Error: Failed to fetch Go version from $go_version_url"
@@ -35,8 +37,8 @@ function fix_golang_version() {
 
   # 替换 feeds/packages/lang/golang/Makefile中的GO_VERSION_MAJOR_MINOR 和 GO_VERSION_PATCH
   # 例如 go = 1.25.7 -> GO_VERSION_MAJOR_MINOR = 1.25 GO_VERSION_PATCH = 7
-  major_minor=$(echo $go_version | awk -F '.' '{print $1"."$2}')
-  patch=$(echo $go_version | awk -F '.' '{print $3}')
+  major_minor=$(echo "$go_version" | awk -F '.' '{print $1"."$2}')
+  patch=$(echo "$go_version" | awk -F '.' '{print $3}')
 
   makefile_path="$1"
   if [ -f "$makefile_path" ]; then
@@ -92,22 +94,23 @@ function fix_ss_libev_version() {
 
 
 if [[ -n "${FIX_GOLANG:-}" ]]; then
-  if [ ${FIX_GOLANG} = true ]; then 
+  if [ "${FIX_GOLANG}" = true ]; then
     if [[ -n "${SOURCE_REPO:-}" ]] && [[ "${SOURCE_REPO}" == *"lede"* ]]; then
       fix_golang_version "feeds/packages/lang/golang/golang/Makefile"
     elif [[ -n "${SOURCE_REPO:-}" ]] && [[ "${SOURCE_REPO}" == *"immortalwrt"* ]]; then
       fix_golang_version "feeds/packages/lang/golang/golang1.25/Makefile"
     else
       echo "Warning: Unable to determine source type"
+    fi
   fi
 fi
 if [[ -n "${FIX_RUST:-}" ]]; then
-  if [ ${FIX_RUST} = true ]; then 
+  if [ "${FIX_RUST}" = true ]; then
     fix_rust_version
   fi
 fi
 if [[ -n "${FIX_SS_LIBEV:-}" ]]; then
-  if [ ${FIX_SS_LIBEV} = true ]; then 
+  if [ "${FIX_SS_LIBEV}" = true ]; then
     fix_ss_libev_version
   fi
 fi
