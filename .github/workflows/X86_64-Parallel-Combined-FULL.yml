@@ -1,12 +1,11 @@
-name: X86_64 Combined LEDE (Parallel)
+name: X86_64 Combined LEDE & ImmortalWrt FULL (Parallel)
 
 on:
   workflow_dispatch:
-  # schedule:
-  #   - cron: 0 16 */3 * *
+  schedule:
+    - cron: 0 16 */2 * *
+
 env:
-  REPO_URL: https://github.com/coolsnowwolf/lede.git
-  REPO_BRANCH: master
   DIY_FEEDS: diy-feeds.sh
   PATCH_SCRIPT: patch/fix_version_error.sh
   INIT_SCRIPT: patch/init-settings.sh
@@ -25,13 +24,16 @@ jobs:
     name: 准备编译环境
 
     outputs:
-      commit_author: ${{ steps.git_info.outputs.commit_author }}
-      commit_date: ${{ steps.git_info.outputs.commit_date }}
-      commit_message: ${{ steps.git_info.outputs.commit_message }}
-      commit_hash: ${{ steps.git_info.outputs.commit_hash }}
+      lede_commit_author: ${{ steps.lede_git_info.outputs.commit_author }}
+      lede_commit_date: ${{ steps.lede_git_info.outputs.commit_date }}
+      lede_commit_message: ${{ steps.lede_git_info.outputs.commit_message }}
+      lede_commit_hash: ${{ steps.lede_git_info.outputs.commit_hash }}
+      immortal_commit_author: ${{ steps.immortal_git_info.outputs.commit_author }}
+      immortal_commit_date: ${{ steps.immortal_git_info.outputs.commit_date }}
+      immortal_commit_message: ${{ steps.immortal_git_info.outputs.commit_message }}
+      immortal_commit_hash: ${{ steps.immortal_git_info.outputs.commit_hash }}
 
     steps:
-      
       - name: 合并磁盘
         uses: easimon/maximize-build-space@master
         with:
@@ -47,12 +49,27 @@ jobs:
       - name: 检查
         uses: actions/checkout@main
 
-      - name: 克隆并获取源码信息
-        id: git_info
+      - name: 克隆并获取LEDE源码信息
+        id: lede_git_info
         run: |
           df -hT $GITHUB_WORKSPACE
-          git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt
-          cd openwrt
+          git clone -b master --single-branch --filter=blob:none https://github.com/coolsnowwolf/lede.git lede-src
+          cd lede-src
+          COMMIT_AUTHOR=$(git show -s --date=short --format="作者: %an")
+          echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
+          COMMIT_DATE=$(git show -s --date=short --format="时间: %ci")
+          echo "commit_date=$COMMIT_DATE" >> $GITHUB_OUTPUT
+          COMMIT_MESSAGE=$(git show -s --date=short --format="内容: %s")
+          echo "commit_message=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
+          COMMIT_HASH=$(git show -s --date=short --format="hash: %H")
+          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
+
+      - name: 克隆并获取ImmortalWrt源码信息
+        id: immortal_git_info
+        run: |
+          df -hT $GITHUB_WORKSPACE
+          git clone -b master --single-branch --filter=blob:none https://github.com/immortalwrt/immortalwrt immortalwrt-src
+          cd immortalwrt-src
           COMMIT_AUTHOR=$(git show -s --date=short --format="作者: %an")
           echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
           COMMIT_DATE=$(git show -s --date=short --format="时间: %ci")
@@ -68,12 +85,12 @@ jobs:
     strategy:
       matrix:
         include:
-          - { build_type: 'Full', diy_script: 'diy-full.sh', config: 'configs/x86_64.config'}
-          - { build_type: 'Mini', diy_script: 'diy-mini.sh', config: 'configs/x86_64-mini.config'}
+          - { source_type: 'LEDE', repo_url: 'https://github.com/coolsnowwolf/lede.git', repo_branch: 'master', config: 'configs/x86_64.config', diy_script: 'diy-full.sh' }
+          - { source_type: 'ImmortalWrt', repo_url: 'https://github.com/immortalwrt/immortalwrt', repo_branch: 'master', config: 'configs/x86_64-immortalWrt.config', diy_script: 'diy-full.sh' }
       max-parallel: 2
       fail-fast: false
 
-    name: 编译 LEDE ${{ matrix.build_type }} 版本固件
+    name: 编译 ${{ matrix.source_type }} FULL 版本固件
 
     steps:
       - name: 检查机器性能
@@ -129,15 +146,16 @@ jobs:
           chmod +x $GITHUB_WORKSPACE/patch/*.sh
           chmod +x $GITHUB_WORKSPACE/diy-*.sh
           df -hT $GITHUB_WORKSPACE
-          git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt
-          echo "OPENWRT_PATH=$PWD/openwrt" >> $GITHUB_ENV
+          git clone -b ${{ matrix.repo_branch }} --single-branch --filter=blob:none ${{ matrix.repo_url }} openwrt-${{ matrix.source_type }}
+          echo "OPENWRT_PATH=$PWD/openwrt-${{ matrix.source_type }}" >> $GITHUB_ENV
+          echo "SOURCE_TYPE=${{ matrix.source_type }}" >> $GITHUB_ENV
 
       - name: 生成编译变量
         run: |
           cd $OPENWRT_PATH
           cp $GITHUB_WORKSPACE/${{ matrix.config }} .config
           make defconfig > /dev/null 2>&1
-          SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
+          SOURCE_REPO="$(echo ${{ matrix.repo_url }} | awk -F '/' '{print $(NF)}')"
           echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
           DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
           echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV
@@ -154,7 +172,7 @@ jobs:
         uses: HiGarfield/cachewrtbuild@main
         with:
           ccache: false
-          mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-${{ matrix.build_type }}
+          mixkey: ${{ env.SOURCE_REPO }}-${{ matrix.repo_branch }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-FULL
           prefix: ${{ env.OPENWRT_PATH }}
 
       - name: 安装 Feed 并加载补丁
@@ -163,7 +181,6 @@ jobs:
           $GITHUB_WORKSPACE/patch/update_eth.sh
           $GITHUB_WORKSPACE/$DIY_FEEDS
           ./scripts/feeds update -a
-          # 加载 fix_version
           $GITHUB_WORKSPACE/$PATCH_SCRIPT
           ./scripts/feeds install -a
 
@@ -183,7 +200,7 @@ jobs:
           find dl -size -1024c -exec ls -l {} \;
           find dl -size -1024c -exec rm -f {} \;
 
-      - name: 编译固件 [${{ matrix.build_type }}]
+      - name: 编译固件 [${{ matrix.source_type }} FULL]
         id: compile
         run: |
           cd $OPENWRT_PATH
@@ -199,29 +216,22 @@ jobs:
         if: (!cancelled())
         run: df -hT
 
-      - name: 整理 ${{ matrix.build_type }} 版本固件
+      - name: 整理 ${{ matrix.source_type }} 版本固件
         if: steps.compile.outputs.status == 'success'
         run: |
           cd $OPENWRT_PATH/bin/targets/*/*
           cat sha256sums
-          cp $OPENWRT_PATH/.config build-${{ matrix.build_type }}.config
+          cp $OPENWRT_PATH/.config build-${{ matrix.source_type }}-FULL.config
           if [ "${{ env.USE_APK }}" = "true" ]; then
             mv -f $OPENWRT_PATH/bin/packages/*/*/*.apk packages 2>/dev/null || true
           else
             mv -f $OPENWRT_PATH/bin/packages/*/*/*.ipk packages 2>/dev/null || true
           fi
-          tar -zcf Packages-${{ matrix.build_type }}.tar.gz packages 2>/dev/null || true
+          tar -zcf Packages-${{ matrix.source_type }}-FULL.tar.gz packages 2>/dev/null || true
           rm -rf packages feeds.buildinfo version.buildinfo
-          echo "KERNEL=$(jq -r '.linux_kernel.version // "unknown"' profiles.json)" >> $GITHUB_ENV
           echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
-          echo "BUILD_TYPE=${{ matrix.build_type }}" >> $GITHUB_ENV
-
-      - name: 上传固件至 Artifact
-        if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE != 'true'
-        uses: actions/upload-artifact@main
-        with:
-          name: ${{ env.SOURCE_REPO }}-firmware-${{ matrix.build_type }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-${{ env.FILE_DATE }}
-          path: ${{ env.FIRMWARE_PATH }}
+          echo "BUILD_TYPE=FULL" >> $GITHUB_ENV
+          echo "SOURCE_TYPE=${{ matrix.source_type }}" >> $GITHUB_ENV
 
       - name: 保存固件至临时目录 (区分版本命名)
         if: steps.compile.outputs.status == 'success'
@@ -229,14 +239,14 @@ jobs:
           echo "FIRMWARE_PATH: ${{ env.FIRMWARE_PATH }}"
           echo "检查源目录内容:"
           ls -lah ${{ env.FIRMWARE_PATH }} || echo "源目录不存在"
-          
-          mkdir -p $GITHUB_WORKSPACE/firmware/${{ matrix.build_type }}
+
+          mkdir -p $GITHUB_WORKSPACE/firmware/${{ matrix.source_type }}
           if [ -d "${{ env.FIRMWARE_PATH }}" ]; then
             cd ${{ env.FIRMWARE_PATH }}
             count=0
             for file in *; do
               if [ -f "$file" ]; then
-                mv "$file" "$GITHUB_WORKSPACE/firmware/${{ matrix.build_type }}/${{ matrix.build_type }}_$file"
+                mv "$file" "$GITHUB_WORKSPACE/firmware/${{ matrix.source_type }}/${{ matrix.source_type }}_$file"
                 count=$((count+1))
                 echo "已移动: $file"
               fi
@@ -246,16 +256,16 @@ jobs:
             echo "错误: FIRMWARE_PATH 目录不存在"
             exit 1
           fi
-          
+
           echo "目标目录内容:"
-          ls -lah $GITHUB_WORKSPACE/firmware/${{ matrix.build_type }} || echo "目标目录为空"
+          ls -lah $GITHUB_WORKSPACE/firmware/${{ matrix.source_type }} || echo "目标目录为空"
 
       - name: 上传固件至 Artifact (用于多 Job 间传输)
         if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE == 'true'
         uses: actions/upload-artifact@main
         with:
-          name: firmware-${{ matrix.build_type }}
-          path: ${{github.workspace}}/firmware/${{ matrix.build_type }}
+          name: firmware-${{ matrix.source_type }}-FULL
+          path: ${{github.workspace}}/firmware/${{ matrix.source_type }}
           retention-days: 1
 
   Release:
@@ -272,16 +282,16 @@ jobs:
             exit 1
           fi
 
-      - name: 下载 Full 版本固件
+      - name: 下载 LEDE 版本固件
         uses: actions/download-artifact@main
         with:
-          name: firmware-Full
+          name: firmware-LEDE-FULL
           path: ./firmware-all
 
-      - name: 下载 Mini 版本固件
+      - name: 下载 ImmortalWrt 版本固件
         uses: actions/download-artifact@main
         with:
-          name: firmware-Mini
+          name: firmware-ImmortalWrt-FULL
           path: ./firmware-all
 
       - name: 整理固件文件
@@ -289,41 +299,60 @@ jobs:
           cd $GITHUB_WORKSPACE/firmware-all
           ls -lah
           echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_ENV
-          echo "FULL_KERNEL_VERSION=$(grep "^kernel " Full_openwrt-x86-64-generic.manifest | awk '{split($3, a, "-"); print a[1]"-"a[2]}')" >> $GITHUB_ENV
-          echo "MINI_KERNEL_VERSION=$(grep "^kernel " Mini_openwrt-x86-64-generic.manifest | awk '{split($3, a, "-"); print a[1]"-"a[2]}')" >> $GITHUB_ENV
-          echo "MINI_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' Mini_profiles.json)" >> $GITHUB_ENV
-          echo "FULL_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' Full_profiles.json)" >> $GITHUB_ENV
+
+          # 提取LEDE内核版本
+          if [ -f "LEDE_profiles.json" ]; then
+            echo "LEDE_KERNEL_VERSION=$(grep "^kernel " LEDE_openwrt-x86-64-generic.manifest | awk '{split($3, a, "-"); print a[1]"-"a[2]}')" >> $GITHUB_ENV
+            echo "LEDE_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' LEDE_profiles.json)" >> $GITHUB_ENV
+          else
+            echo "LEDE_KERNEL_VERSION=unknown" >> $GITHUB_ENV
+            echo "LEDE_FIRMWARE_VERSION=unknown" >> $GITHUB_ENV
+          fi
+
+          # 提取ImmortalWrt内核版本
+          if [ -f "ImmortalWrt_profiles.json" ]; then
+            echo "IMMORTAL_KERNEL_VERSION=$(jq -r '.linux_kernel.version // "unknown"' ImmortalWrt_profiles.json)" >> $GITHUB_ENV
+            echo "IMMORTAL_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' ImmortalWrt_profiles.json)" >> $GITHUB_ENV
+          else
+            echo "IMMORTAL_KERNEL_VERSION=unknown" >> $GITHUB_ENV
+            echo "IMMORTAL_FIRMWARE_VERSION=unknown" >> $GITHUB_ENV
+          fi
 
       - name: 发布固件至 Release (统一)
         uses: softprops/action-gh-release@v2
         with:
-          name: R${{ env.FILE_DATE }}_LEDE_Combined
-          tag_name: R${{ env.FILE_DATE }}_LEDE_Combined
+          name: R${{ env.FILE_DATE }}_LEDE_ImmortalWrt_FULL_Combined
+          tag_name: R${{ env.FILE_DATE }}_LEDE_ImmortalWrt_FULL_Combined
           token: ${{ secrets.GH_TOKEN }}
           files: ${{ github.workspace }}/firmware-all/*
           body: |
-            **OpenWrt LEDE Combined Firmware (Parallel Build)**
+            **OpenWrt LEDE & ImmortalWrt FULL Firmware (Parallel Build)**
             ### 📒 固件信息
             - 💻 平台架构: x86_64
-            - 📦 编译版本: Full + Mini 组合版本
-            - ⚽ 固件源码: LEDE
+            - 📦 编译版本: LEDE + ImmortalWrt FULL 组合版本
+            - ⚽ 固件源码: LEDE + ImmortalWrt
             - 💝 源码分支: master
             - 内核版本:
-              - Full: ${{ env.FULL_KERNEL_VERSION }}
-              - Mini: ${{ env.MINI_KERNEL_VERSION }}
+              - LEDE: ${{ env.LEDE_KERNEL_VERSION }}
+              - ImmortalWrt: ${{ env.IMMORTAL_KERNEL_VERSION }}
             - 🌐 默认地址: 192.168.1.1
             - 🔑 默认密码: 无
             ### 📋 文件说明
-            - **Full_*** : Full 完整版本固件
-            - **Mini_*** : Mini 精简版本固件
+            - **LEDE_*** : LEDE FULL 版本固件
+            - **ImmortalWrt_*** : ImmortalWrt FULL 版本固件
             ### 🧊 固件版本信息
             - 固件版本
-              - Full: ${{ env.FULL_FIRMWARE_VERSION }}
-              - Mini: ${{ env.MINI_FIRMWARE_VERSION }}
-            - 固件编译前最后一次 ImmortalWrt 源码更新记录
-            - ${{ needs.Prepare.outputs.commit_author }}
-            - ${{ needs.Prepare.outputs.commit_date }}
-            - ${{ needs.Prepare.outputs.commit_message }}
-            - ${{ needs.Prepare.outputs.commit_hash }}
+              - LEDE: ${{ env.LEDE_FIRMWARE_VERSION }}
+              - ImmortalWrt: ${{ env.IMMORTAL_FIRMWARE_VERSION }}
+            ### 📝 源码更新记录
+            **LEDE 源码:**
+            - ${{ needs.Prepare.outputs.lede_commit_author }}
+            - ${{ needs.Prepare.outputs.lede_commit_date }}
+            - ${{ needs.Prepare.outputs.lede_commit_message }}
+            - ${{ needs.Prepare.outputs.lede_commit_hash }}
 
-
+            **ImmortalWrt 源码:**
+            - ${{ needs.Prepare.outputs.immortal_commit_author }}
+            - ${{ needs.Prepare.outputs.immortal_commit_date }}
+            - ${{ needs.Prepare.outputs.immortal_commit_message }}
+            - ${{ needs.Prepare.outputs.immortal_commit_hash }}
