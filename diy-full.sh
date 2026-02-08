@@ -44,17 +44,6 @@ function detect_source_type() {
   #   fi
   # fi
 
-  # # 方法3: 检查文件系统特征
-  # if [[ -d "package/lean" ]]; then
-  #   echo "lede"
-  #   return 0
-  # fi
-
-  # if [[ -d "package/emortal" ]]; then
-  #   echo "immortalwrt"
-  #   return 0
-  # fi
-
   # 无法检测
   echo "unknown"
   return 1

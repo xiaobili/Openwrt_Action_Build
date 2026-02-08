@@ -317,6 +317,9 @@ jobs:
             - **Full_*** : Full 完整版本固件
             - **Mini_*** : Mini 精简版本固件
             ### 🧊 固件版本信息
+            - 固件版本
+              - Full: ${{ env.FULL_FIRMWARE_VERSION }}
+              - Mini: ${{ env.MINI_FIRMWARE_VERSION }}
             - 固件编译前最后一次 ImmortalWrt 源码更新记录
             - ${{ needs.Prepare.outputs.commit_author }}
             - ${{ needs.Prepare.outputs.commit_date }}
