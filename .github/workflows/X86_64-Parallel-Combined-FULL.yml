@@ -189,7 +189,7 @@ jobs:
       - name: 加载 Patch
         run: |
           cd $OPENWRT_PATH
-          $GITHUB_WORKSPACE/patch/patch.sh
+          $GITHUB_WORKSPACE/$PATCH_SCRIPT
 
       - name: 安装插件
         run: |
