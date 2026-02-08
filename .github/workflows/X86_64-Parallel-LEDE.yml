@@ -124,29 +124,31 @@ jobs:
         uses: actions/checkout@main
 
       - name: 克隆仓库
+        id: clone
         run: |
           chmod +x $GITHUB_WORKSPACE/scripts/*.sh
           chmod +x $GITHUB_WORKSPACE/patch/*.sh
           chmod +x $GITHUB_WORKSPACE/diy-*.sh
           df -hT $GITHUB_WORKSPACE
           git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt
-          echo "OPENWRT_PATH=$PWD/openwrt" >> $GITHUB_ENV
+          echo "OPENWRT_PATH=$PWD/openwrt" >> $GITHUB_OUTPUT
 
       - name: 生成编译变量
+        id: vars
         run: |
-          cd $OPENWRT_PATH
+          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
           cp $GITHUB_WORKSPACE/${{ matrix.config }} .config
           make defconfig > /dev/null 2>&1
           SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
-          echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
+          echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_OUTPUT
           DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
-          echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV
+          echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_OUTPUT
           DEVICE_SUBTARGET=$(cat .config | grep CONFIG_TARGET_SUBTARGET | awk -F '"' '{print $2}')
-          echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_ENV
+          echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_OUTPUT
           if grep -q "^CONFIG_USE_APK=y$" .config; then
-              echo "USE_APK=true" >> $GITHUB_ENV
+              echo "USE_APK=true" >> $GITHUB_OUTPUT
           else
-              echo "USE_APK=false" >> $GITHUB_ENV
+              echo "USE_APK=false" >> $GITHUB_OUTPUT
           fi
 
       - name: 缓存工具链
@@ -154,41 +156,41 @@ jobs:
         uses: HiGarfield/cachewrtbuild@main
         with:
           ccache: false
-          mixkey: ${{ env.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-${{ matrix.build_type }}
-          prefix: ${{ env.OPENWRT_PATH }}
+          mixkey: ${{ steps.vars.outputs.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ steps.vars.outputs.DEVICE_TARGET }}-${{ steps.vars.outputs.DEVICE_SUBTARGET }}-${{ matrix.build_type }}
+          prefix: ${{ steps.clone.outputs.OPENWRT_PATH }}
 
       - name: 编辑源
         id: edit_config
         run: |
-          cd $OPENWRT_PATH
+          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
           $GITHUB_WORKSPACE/patch/update_eth.sh
           $GITHUB_WORKSPACE/$DIY_FEEDS
       - name: 更新源
         run: |
-          cd $OPENWRT_PATH
+          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
           ./scripts/feeds update -a
-      
+
       - name: 加载 Patch
         run: |
-          cd $OPENWRT_PATH
+          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
           $GITHUB_WORKSPACE/$PATCH_SCRIPT
 
       - name: 安装插件
         run: |
-          cd $OPENWRT_PATH
+          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
           ./scripts/feeds install -a
 
       - name: 加载自定义配置
         run: |
           [ -e files ] && rm -rf files
-          [ -e $GITHUB_WORKSPACE/files ] && cp -r $GITHUB_WORKSPACE/files $OPENWRT_PATH/files
-          cd $OPENWRT_PATH
+          [ -e $GITHUB_WORKSPACE/files ] && cp -r $GITHUB_WORKSPACE/files ${{ steps.clone.outputs.OPENWRT_PATH }}/files
+          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
           cp $GITHUB_WORKSPACE/${{ matrix.config }} .config
           $GITHUB_WORKSPACE/${{ matrix.diy_script }}
 
       - name: 下载依赖
         run: |
-          cd $OPENWRT_PATH
+          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
           make defconfig
           $GITHUB_WORKSPACE/$MAKE_SCRIPT download
           find dl -size -1024c -exec ls -l {} \;
@@ -197,53 +199,54 @@ jobs:
       - name: 编译固件 [${{ matrix.build_type }}]
         id: compile
         run: |
-          cd $OPENWRT_PATH
+          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
           mkdir -p files/etc/uci-defaults
           cp $GITHUB_WORKSPACE/$INIT_SCRIPT files/etc/uci-defaults/99-init-settings
           echo -e "$(nproc) thread compile"
           $GITHUB_WORKSPACE/$MAKE_SCRIPT nproc || make -j$(nproc) V=s
           echo "status=success" >> $GITHUB_OUTPUT
-          echo "DATE=$(date +"%Y-%m-%d %H:%M:%S")" >> $GITHUB_ENV
-          echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_ENV
+          echo "DATE=$(date +"%Y-%m-%d %H:%M:%S")" >> $GITHUB_OUTPUT
+          echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_OUTPUT
 
       - name: 检查磁盘空间
         if: (!cancelled())
         run: df -hT
 
       - name: 整理 ${{ matrix.build_type }} 版本固件
+        id: organize
         if: steps.compile.outputs.status == 'success'
         run: |
-          cd $OPENWRT_PATH/bin/targets/*/*
+          cd ${{ steps.clone.outputs.OPENWRT_PATH }}/bin/targets/*/*
           cat sha256sums
-          cp $OPENWRT_PATH/.config build-${{ matrix.build_type }}.config
-          if [ "${{ env.USE_APK }}" = "true" ]; then
-            mv -f $OPENWRT_PATH/bin/packages/*/*/*.apk packages 2>/dev/null || true
+          cp ${{ steps.clone.outputs.OPENWRT_PATH }}/.config build-${{ matrix.build_type }}.config
+          if [ "${{ steps.vars.outputs.USE_APK }}" = "true" ]; then
+            mv -f ${{ steps.clone.outputs.OPENWRT_PATH }}/bin/packages/*/*/*.apk packages 2>/dev/null || true
           else
-            mv -f $OPENWRT_PATH/bin/packages/*/*/*.ipk packages 2>/dev/null || true
+            mv -f ${{ steps.clone.outputs.OPENWRT_PATH }}/bin/packages/*/*/*.ipk packages 2>/dev/null || true
           fi
           tar -zcf Packages-${{ matrix.build_type }}.tar.gz packages 2>/dev/null || true
           rm -rf packages feeds.buildinfo version.buildinfo
-          echo "KERNEL=$(jq -r '.linux_kernel.version // "unknown"' profiles.json)" >> $GITHUB_ENV
-          echo "FIRMWARE_PATH=$PWD" >> $GITHUB_ENV
-          echo "BUILD_TYPE=${{ matrix.build_type }}" >> $GITHUB_ENV
+          echo "KERNEL=$(jq -r '.linux_kernel.version // "unknown"' profiles.json)" >> $GITHUB_OUTPUT
+          echo "FIRMWARE_PATH=$PWD" >> $GITHUB_OUTPUT
+          echo "BUILD_TYPE=${{ matrix.build_type }}" >> $GITHUB_OUTPUT
 
       - name: 上传固件至 Artifact
         if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE != 'true'
         uses: actions/upload-artifact@main
         with:
-          name: ${{ env.SOURCE_REPO }}-firmware-${{ matrix.build_type }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-${{ env.FILE_DATE }}
-          path: ${{ env.FIRMWARE_PATH }}
+          name: ${{ steps.vars.outputs.SOURCE_REPO }}-firmware-${{ matrix.build_type }}-${{ steps.vars.outputs.DEVICE_TARGET }}-${{ steps.vars.outputs.DEVICE_SUBTARGET }}-${{ steps.compile.outputs.FILE_DATE }}
+          path: ${{ steps.organize.outputs.FIRMWARE_PATH }}
 
       - name: 保存固件至临时目录 (区分版本命名)
         if: steps.compile.outputs.status == 'success'
         run: |
-          echo "FIRMWARE_PATH: ${{ env.FIRMWARE_PATH }}"
+          echo "FIRMWARE_PATH: ${{ steps.organize.outputs.FIRMWARE_PATH }}"
           echo "检查源目录内容:"
-          ls -lah ${{ env.FIRMWARE_PATH }} || echo "源目录不存在"
-          
+          ls -lah ${{ steps.organize.outputs.FIRMWARE_PATH }} || echo "源目录不存在"
+
           mkdir -p $GITHUB_WORKSPACE/firmware/${{ matrix.build_type }}
-          if [ -d "${{ env.FIRMWARE_PATH }}" ]; then
-            cd ${{ env.FIRMWARE_PATH }}
+          if [ -d "${{ steps.organize.outputs.FIRMWARE_PATH }}" ]; then
+            cd ${{ steps.organize.outputs.FIRMWARE_PATH }}
             count=0
             for file in *; do
               if [ -f "$file" ]; then
@@ -257,7 +260,7 @@ jobs:
             echo "错误: FIRMWARE_PATH 目录不存在"
             exit 1
           fi
-          
+
           echo "目标目录内容:"
           ls -lah $GITHUB_WORKSPACE/firmware/${{ matrix.build_type }} || echo "目标目录为空"
 
@@ -296,20 +299,21 @@ jobs:
           path: ./firmware-all
 
       - name: 整理固件文件
+        id: release_vars
         run: |
           cd $GITHUB_WORKSPACE/firmware-all
           ls -lah
-          echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_ENV
-          echo "FULL_KERNEL_VERSION=$(grep "^kernel " Full_openwrt-x86-64-generic.manifest | awk '{split($3, a, "-"); print a[1]"-"a[2]}')" >> $GITHUB_ENV
-          echo "MINI_KERNEL_VERSION=$(grep "^kernel " Mini_openwrt-x86-64-generic.manifest | awk '{split($3, a, "-"); print a[1]"-"a[2]}')" >> $GITHUB_ENV
-          echo "MINI_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' Mini_profiles.json)" >> $GITHUB_ENV
-          echo "FULL_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' Full_profiles.json)" >> $GITHUB_ENV
+          echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_OUTPUT
+          echo "FULL_KERNEL_VERSION=$(grep "^kernel " Full_openwrt-x86-64-generic.manifest | awk '{split($3, a, "-"); print a[1]"-"a[2]}')" >> $GITHUB_OUTPUT
+          echo "MINI_KERNEL_VERSION=$(grep "^kernel " Mini_openwrt-x86-64-generic.manifest | awk '{split($3, a, "-"); print a[1]"-"a[2]}')" >> $GITHUB_OUTPUT
+          echo "MINI_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' Mini_profiles.json)" >> $GITHUB_OUTPUT
+          echo "FULL_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' Full_profiles.json)" >> $GITHUB_OUTPUT
 
       - name: 发布固件至 Release (统一)
         uses: softprops/action-gh-release@v2
         with:
-          name: R${{ env.FILE_DATE }}_LEDE_Combined
-          tag_name: R${{ env.FILE_DATE }}_LEDE_Combined
+          name: R${{ steps.release_vars.outputs.FILE_DATE }}_LEDE_Combined
+          tag_name: R${{ steps.release_vars.outputs.FILE_DATE }}_LEDE_Combined
           token: ${{ secrets.GH_TOKEN }}
           files: ${{ github.workspace }}/firmware-all/*
           body: |
@@ -320,8 +324,8 @@ jobs:
             - ⚽ 固件源码: LEDE
             - 💝 源码分支: master
             - 内核版本:
-              - Full: ${{ env.FULL_KERNEL_VERSION }}
-              - Mini: ${{ env.MINI_KERNEL_VERSION }}
+              - Full: ${{ steps.release_vars.outputs.FULL_KERNEL_VERSION }}
+              - Mini: ${{ steps.release_vars.outputs.MINI_KERNEL_VERSION }}
             - 🌐 默认地址: 192.168.1.1
             - 🔑 默认密码: 无
             ### 📋 文件说明
@@ -329,8 +333,8 @@ jobs:
             - **Mini_*** : Mini 精简版本固件
             ### 🧊 固件版本信息
             - 固件版本
-              - Full: ${{ env.FULL_FIRMWARE_VERSION }}
-              - Mini: ${{ env.MINI_FIRMWARE_VERSION }}
+              - Full: ${{ steps.release_vars.outputs.FULL_FIRMWARE_VERSION }}
+              - Mini: ${{ steps.release_vars.outputs.MINI_FIRMWARE_VERSION }}
             - 固件编译前最后一次 ImmortalWrt 源码更新记录
             - ${{ needs.Prepare.outputs.commit_author }}
             - ${{ needs.Prepare.outputs.commit_date }}
