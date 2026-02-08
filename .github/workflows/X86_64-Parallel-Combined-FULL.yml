@@ -175,13 +175,25 @@ jobs:
           mixkey: ${{ env.SOURCE_REPO }}-${{ matrix.repo_branch }}-${{ env.DEVICE_TARGET }}-${{ env.DEVICE_SUBTARGET }}-FULL
           prefix: ${{ env.OPENWRT_PATH }}
 
-      - name: 安装 Feed 并加载补丁
+      - name: 编辑源
+        id: edit_config
         run: |
           cd $OPENWRT_PATH
           $GITHUB_WORKSPACE/patch/update_eth.sh
           $GITHUB_WORKSPACE/$DIY_FEEDS
+      - name: 更新源
+        run: |
+          cd $OPENWRT_PATH
           ./scripts/feeds update -a
-          $GITHUB_WORKSPACE/$PATCH_SCRIPT
+      
+      - name: 加载 Patch
+        run: |
+          cd $OPENWRT_PATH
+          $GITHUB_WORKSPACE/patch/patch.sh
+
+      - name: 安装插件
+        run: |
+          cd $OPENWRT_PATH
           ./scripts/feeds install -a
 
       - name: 加载自定义配置
