@@ -141,10 +141,13 @@ jobs:
           make defconfig > /dev/null 2>&1
           SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
           echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_OUTPUT
+          echo "SOURCE_REPO=$SOURCE_REPO" > $GITHUB_ENV
           DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
           echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_OUTPUT
+          echo "DEVICE_TARGET=$DEVICE_TARGET" > $GITHUB_ENV
           DEVICE_SUBTARGET=$(cat .config | grep CONFIG_TARGET_SUBTARGET | awk -F '"' '{print $2}')
           echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_OUTPUT
+          echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" > $GITHUB_ENV
           if grep -q "^CONFIG_USE_APK=y$" .config; then
               echo "USE_APK=true" >> $GITHUB_OUTPUT
           else

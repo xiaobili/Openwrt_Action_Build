@@ -150,6 +150,7 @@ jobs:
           git clone -b ${{ matrix.repo_branch }} --single-branch --filter=blob:none ${{ matrix.repo_url }} openwrt-${{ matrix.source_type }}
           echo "OPENWRT_PATH=$PWD/openwrt-${{ matrix.source_type }}" >> $GITHUB_OUTPUT
           echo "SOURCE_TYPE=${{ matrix.source_type }}" >> $GITHUB_OUTPUT
+          echo "SOURCE_TYPE=${{ matrix.source_type }}" >> $GITHUB_ENV
 
       - name: 生成编译变量
         id: vars
@@ -159,10 +160,13 @@ jobs:
           make defconfig > /dev/null 2>&1
           SOURCE_REPO="$(echo ${{ matrix.repo_url }} | awk -F '/' '{print $(NF)}')"
           echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_OUTPUT
+          echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
           DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
           echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_OUTPUT
+          echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV
           DEVICE_SUBTARGET=$(cat .config | grep CONFIG_TARGET_SUBTARGET | awk -F '"' '{print $2}')
           echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_OUTPUT
+          echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_ENV
           if grep -q "^CONFIG_USE_APK=y$" .config; then
               echo "USE_APK=true" >> $GITHUB_OUTPUT
           else
