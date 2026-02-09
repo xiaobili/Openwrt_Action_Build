@@ -346,7 +346,9 @@ jobs:
             ### 📒 固件信息
             - 💻 平台架构: x86_64
             - 📦 编译版本: LEDE + ImmortalWrt FULL 组合版本
-            - ⚽ 固件源码: LEDE + ImmortalWrt
+            - ⚽ 固件源码: 
+              - [LEDE](https://github.com/coolsnowwolf/lede)
+              - [ImmortalWrt](https://github.com/immortalwrt/immortalwrt)
             - 💝 源码分支: master
             - 内核版本:
               - LEDE: ${{ steps.release_vars.outputs.LEDE_KERNEL_VERSION }}
