@@ -95,12 +95,17 @@ execute_with_retry() {
         echo
         log_info "第 $attempt 次尝试... ($(date '+%Y-%m-%d %H:%M:%S'))"
 
-        local output
+        local output_file
+        output_file=$(mktemp)
         local exit_code
 
-        # 执行命令并捕获输出
-        output=$(eval "$command" 2>&1 | tee /dev/stderr)
+        # 执行命令并捕获输出到临时文件，同时输出到终端
+        eval "$command" 2>&1 | tee "$output_file"
         exit_code=${PIPESTATUS[0]}
+
+        local output
+        output=$(cat "$output_file")
+        rm -f "$output_file"
 
         # 检查失败
         local failure_detected=0
