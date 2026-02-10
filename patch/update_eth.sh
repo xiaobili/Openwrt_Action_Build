@@ -1,36 +1,36 @@
 #!/bin/sh
-# update.sh - replace two lines in netwrok_init with ucidef_set_interfaces_lan_wan "eth1 eth2 eth3" "eth0"
-
 set -eu
 
-TARGET="package/base-files/files/etc/board.d/99-default_network"
-REPL='ucidef_set_interfaces_lan_wan "eth1 eth2 eth3" "eth0"'
+# update_eth.sh - 替换网络初始化配置为 ucidef_set_interfaces_lan_wan
 
-[ -f "$TARGET" ] || { echo "target not found: $TARGET" >&2; exit 1; }
+readonly TARGET="package/base-files/files/etc/board.d/99-default_network"
+readonly REPL='ucidef_set_interfaces_lan_wan "eth1 eth2 eth3" "eth0"'
 
-# no-op if already present
+if [ ! -f "$TARGET" ]; then
+  echo "目标文件不存在: $TARGET" >&2
+  exit 1
+fi
+
+# 如果已存在则跳过
 grep -q '^[[:space:]]*ucidef_set_interfaces_lan_wan' "$TARGET" && exit 0
 
-
 awk -v repl="$REPL" '
-    BEGIN { done = 0 }
-    {
-        if (!done && $0 ~ /^[[:space:]]*ucidef_set_interface_lan[[:space:]]/) {
-            # skip this line; peek next
-            if (getline nxt) {
-                if (nxt ~ /^[[:space:]]*\[ -d[[:space:]]+\/sys\/class\/net\/eth1/ && nxt ~ /ucidef_set_interface_wan/) {
-                    # skip nxt too
-                } else {
-                    print nxt
-                }
-            }
-            print repl
-            done = 1
-        } else {
-            print
+  BEGIN { done = 0 }
+  {
+    if (!done && $0 ~ /^[[:space:]]*ucidef_set_interface_lan[[:space:]]/) {
+      # 跳过当前行，检查下一行
+      if (getline nxt) {
+        if (!(nxt ~ /^[[:space:]]*\[ -d[[:space:]]+\/sys\/class\/net\/eth1/ && nxt ~ /ucidef_set_interface_wan/)) {
+          print nxt
         }
+      }
+      print repl
+      done = 1
+    } else {
+      print
     }
-    END {
-        if (!done) print repl
-    }
+  }
+  END {
+    if (!done) print repl
+  }
 ' "$TARGET" > "$TARGET.tmp" && mv "$TARGET.tmp" "$TARGET"
