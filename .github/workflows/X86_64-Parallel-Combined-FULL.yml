@@ -3,7 +3,7 @@ name: X86_64 Combined LEDE & ImmortalWrt FULL (Parallel)
 on:
   workflow_dispatch:
   schedule:
-    - cron: 0 16 */4 * *
+    - cron: 0 16 * * *
 
 env:
   DIY_FEEDS: diy-feeds.sh
