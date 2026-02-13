@@ -44,6 +44,11 @@ function fix_golang_version() {
     return 1
   fi
 
+  # 如果 go_version 只有大版本号（如 1.26），则补全为 1.26.0
+  if [[ "$go_version" != *.*.* ]]; then
+    go_version="${go_version}.0"
+  fi
+
   echo "Detected Go version: $go_version"
 
   # 解析版本号
