@@ -30,7 +30,7 @@ function fix_golang_version() {
   fi
 
   rm -rf feeds/packages/lang/golang
-  git clone https://github.com/kenzok8/golang -b 1.25 feeds/packages/lang/golang
+  git_sparse_clone "master" "https://github.com/openwrt/packages" "feeds" "packages/lang" "lang/golang"
 
   # 获取xray-core的go版本
   local go_version_url="https://raw.githubusercontent.com/XTLS/Xray-core/main/go.mod"
