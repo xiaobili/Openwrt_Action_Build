@@ -29,9 +29,6 @@ function fix_golang_version() {
     return 0
   fi
 
-  rm -rf feeds/packages/lang/golang
-  git_sparse_clone "master" "https://github.com/openwrt/packages" "feeds" "packages/lang" "lang/golang"
-
   # 获取xray-core的go版本
   local go_version_url="https://raw.githubusercontent.com/XTLS/Xray-core/main/go.mod"
   echo "Fetching Go version from: $go_version_url"
@@ -115,6 +112,9 @@ main() {
   if [[ "${FIX_GOLANG:-}" == "true" ]]; then
     case "${SOURCE_REPO:-}" in
       *"lede"*|*"immortalwrt"*)
+        # 克隆 golang 环境
+        rm -rf feeds/packages/lang/golang
+        git_sparse_clone "master" "https://github.com/openwrt/packages" "feeds" "packages/lang" "lang/golang"
         # 动态查找 golang 目录
         local golang_dir makefile_path
         golang_dir=$(find feeds/packages/lang/golang -maxdepth 1 -type d -name 'golang[0-9]*.[0-9]*' | head -n 1)
