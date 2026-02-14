@@ -115,7 +115,16 @@ main() {
   if [[ "${FIX_GOLANG:-}" == "true" ]]; then
     case "${SOURCE_REPO:-}" in
       *"lede"*|*"immortalwrt"*)
-        fix_golang_version "feeds/packages/lang/golang/golang1.26/Makefile"
+        # 动态查找 golang 目录
+        local golang_dir makefile_path
+        golang_dir=$(find feeds/packages/lang/golang -maxdepth 1 -type d -name 'golang[0-9]*.[0-9]*' | head -n 1)
+        if [[ -z "$golang_dir" ]]; then
+          echo "Error: No golang directory found in feeds/packages/lang/golang/"
+          exit 1
+        fi
+        makefile_path="$golang_dir/Makefile"
+        echo "Found golang directory: $golang_dir"
+        fix_golang_version "$makefile_path"
         ;;
       *)
         echo "Warning: Unable to determine source type"
