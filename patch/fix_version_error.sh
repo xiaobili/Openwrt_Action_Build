@@ -146,8 +146,11 @@ fix_golang_version() {
     sed -i "s/GO_VERSION_PATCH:=.*/GO_VERSION_PATCH:=$patch/g" "$makefile_path"
     log_info "已更新 GO_VERSION_MAJOR_MINOR 为 $major_minor, GO_VERSION_PATCH 为 $patch"
 
+    # 构建完整版本号用于下载（如 1.22.0）
+    local full_version="${major_minor}.${patch}"
+
     # 获取 go hash
-    local go_hash_url="https://dl.google.com/go/go${go_version}.src.tar.gz.sha256"
+    local go_hash_url="https://dl.google.com/go/go${full_version}.src.tar.gz.sha256"
     log_info "获取哈希值: $go_hash_url"
 
     local go_hash
