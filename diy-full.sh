@@ -156,9 +156,9 @@ case "$source_type" in
 
     ## AdGuardHome
     echo "正在添加 AdGuardHome..."
-    git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome 2>/dev/null || {
+    git_sparse_clone main https://github.com/kenzok8/small-package luci-app-adguardhome 2>/dev/null || {
       echo "警告: git_sparse_clone 失败，尝试直接克隆..."
-      git clone --depth=1 https://github.com/coolsnowwolf/luci-app-adguardhome.git package/luci-app-adguardhome 2>/dev/null || true
+      git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome 2>/dev/null || true
     }
 
     ## mosdns
