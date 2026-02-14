@@ -115,7 +115,7 @@ main() {
   if [[ "${FIX_GOLANG:-}" == "true" ]]; then
     case "${SOURCE_REPO:-}" in
       *"lede"*|*"immortalwrt"*)
-        fix_golang_version "feeds/packages/lang/golang/golang/Makefile"
+        fix_golang_version "feeds/packages/lang/golang/golang1.26/Makefile"
         ;;
       *)
         echo "Warning: Unable to determine source type"
