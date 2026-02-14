@@ -201,12 +201,12 @@ clone_golang_feed() {
 
     # 查找 golang Makefile
     local golang_dir makefile_path
-    golang_dir=$(find "$target_dir" -maxdepth 2 -type d -name 'golang*' | head -n 1)
-
-    if [[ -z "$golang_dir" ]]; then
-        # 尝试默认路径
-        golang_dir="$target_dir/golang"
-    fi
+    # golang_dir=$(find "$target_dir" -maxdepth 2 -type d -name 'golang*' | head -n 1)
+    golang_dir=feeds/packages/lang/golang/golang
+    # if [[ -z "$golang_dir" ]]; then
+    #     # 尝试默认路径
+    #     golang_dir="$target_dir/golang"
+    # fi
 
     makefile_path="$golang_dir/Makefile"
 
