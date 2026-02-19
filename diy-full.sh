@@ -78,8 +78,8 @@ log_info "开始修改 xray-plugin"
 # 将 package/feeds/passwall_packages/xray-plugin/Makefile 中 PKG_VERSION 修改为 main 
 sed -i 's/PKG_VERSION:=.*/PKG_VERSION:=main/g' package/feeds/passwall_packages/xray-plugin/Makefile
 # 将 PKG_SOURCE_URL 修改为 https://codeload.github.com/teddysun/xray-plugin/tar.gz/main?
-sed -i 's/PKG_SOURCE_URL:=https:\/\/codeload.github.com\/teddysun\/xray-plugin\/tar.gz\/v\(.*\)\?/https:\/\/codeload.github.com\/teddysun\/xray-plugin\/tar.gz\/main\?/g' package/feeds/passwall_packages/xray-plugin/Makefile
-# 将 PKG_HASH修改为 dbc147d64fa816fad4b02da5528db28b4894327928445a49c39458b23c89e5cb
+sed -i 's|PKG_SOURCE_URL:=https://codeload.github.com/teddysun/xray-plugin/tar.gz/v.*|PKG_SOURCE_URL:=https://codeload.github.com/teddysun/xray-plugin/tar.gz/main?|g' package/feeds/passwall_packages/xray-plugin/Makefile
+# 将 PKG_HASH修改为 main 版本的 HASH
 sed -i 's/PKG_HASH:=.*/PKG_HASH:=dbc147d64fa816fad4b02da5528db28b4894327928445a49c39458b23c89e5cb/g' package/feeds/passwall_packages/xray-plugin/Makefile
 
 
