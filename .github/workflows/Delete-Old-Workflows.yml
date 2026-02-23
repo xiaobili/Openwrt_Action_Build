@@ -5,6 +5,7 @@ on:
   workflow_run:
     workflows: 
       - "X86_64 Combined ImmortalWrt (Parallel)"
+      - "X86_64 Combined LEDE & ImmortalWrt FULL (Parallel)"
     types:
       - completed
 
