@@ -2,4 +2,4 @@
 
 
 echo "${{ matrix.source_type }}"
-echo "${{ matrix.fix_golang }}
+echo "${{ matrix.fix_golang }}"
