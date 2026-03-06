@@ -39,7 +39,10 @@ jobs:
     name: 编译 ${{ matrix.source_type }} FULL 版本固件
 
     steps:
-      - name: 检查机器性能
+      - name: 检查
+        uses: actions/checkout@main
+
+      - name: 测试
         run: |
           chmod +x $PATCH_SCRIPT
           $PATCH_SCRIPT
