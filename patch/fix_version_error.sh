@@ -180,14 +180,19 @@ fix_golang_version() {
 }
 
 # 修复 rust 版本
+# 参数：repo_type - 源码类型 (lede/immortalwrt)
 fix_rust_version() {
-    log_info "修复 rust 版本..."
+    local repo_type="${1:-}"
+    log_info "修复 rust 版本 (源码类型：${repo_type:-未指定})..."
+    
     # TODO: 实现 rust 版本修复逻辑
 }
 
 # 修复 ss-libev 版本
+# 参数：repo_type - 源码类型 (lede/immortalwrt)
 fix_ss_libev_version() {
-    log_info "修复 ss-libev 版本..."
+    local repo_type="${1:-}"
+    log_info "修复 ss-libev 版本 (源码类型：${repo_type:-未指定})..."
     # TODO: 实现 ss-libev 版本修复逻辑
 }
 
@@ -283,7 +288,12 @@ main() {
     # 修复 golang 版本
     if [[ "${FIX_GOLANG:-}" == "true" ]]; then
         case "${SOURCE_REPO:-}" in
-        *"lede"* | *"immortalwrt"*)
+        *"lede"*)
+            if ! clone_golang_feed; then
+                has_error=1
+            fi
+            ;;
+        *"immortalwrt"*)
             if ! clone_golang_feed; then
                 has_error=1
             fi
@@ -297,12 +307,34 @@ main() {
 
     # 修复 rust 版本
     if [[ "${FIX_RUST:-}" == "true" ]]; then
-        fix_rust_version
+        case "${SOURCE_REPO:-}" in
+        *"lede"*)
+            fix_rust_version "lede"
+            ;;
+        *"immortalwrt"*)
+            fix_rust_version "immortalwrt"
+            ;;
+        *)
+            log_warn "无法从 SOURCE_REPO='${SOURCE_REPO:-}' 识别源码类型"
+            log_warn "支持的类型：lede, immortalwrt"
+            ;;
+        esac
     fi
 
     # 修复 ss-libev 版本
     if [[ "${FIX_SS_LIBEV:-}" == "true" ]]; then
-        fix_ss_libev_version
+        case "${SOURCE_REPO:-}" in
+        *"lede"*)
+            fix_ss_libev_version "lede"
+            ;;
+        *"immortalwrt"*)
+            fix_ss_libev_version "immortalwrt"
+            ;;
+        *)
+            log_warn "无法从 SOURCE_REPO='${SOURCE_REPO:-}' 识别源码类型"
+            log_warn "支持的类型：lede, immortalwrt"
+            ;;
+        esac
     fi
 
     if ((has_error == 0)); then

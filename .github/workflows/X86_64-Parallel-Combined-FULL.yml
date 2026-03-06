@@ -13,9 +13,6 @@ env:
   CACHE_TOOLCHAIN: true
   UPLOAD_BIN_DIR: false
   FIRMWARE_RELEASE: true
-  FIX_GOLANG: true
-  FIX_RUST: false
-  FIX_SS_LIBEV: false
   TZ: Asia/Shanghai
 
 jobs:
@@ -85,8 +82,26 @@ jobs:
     strategy:
       matrix:
         include:
-          - { source_type: 'LEDE', repo_url: 'https://github.com/coolsnowwolf/lede.git', repo_branch: 'master', config: 'configs/x86_64.config', diy_script: 'diy-full.sh' }
-          - { source_type: 'ImmortalWrt', repo_url: 'https://github.com/immortalwrt/immortalwrt', repo_branch: 'openwrt-25.12', config: 'configs/x86_64-immortalWrt.config', diy_script: 'diy-full.sh' }
+          - {
+              source_type: "LEDE",
+              repo_url: "https://github.com/coolsnowwolf/lede.git",
+              repo_branch: "master",
+              config: "configs/x86_64.config",
+              diy_script: "diy-full.sh",
+              fix_rust: false,
+              fix_golang: true,
+              fix_ss_libev: false,
+            }
+          - {
+              source_type: "ImmortalWrt",
+              repo_url: "https://github.com/immortalwrt/immortalwrt",
+              repo_branch: "openwrt-25.12",
+              config: "configs/x86_64-immortalWrt.config",
+              diy_script: "diy-full.sh",
+              fix_rust: true,
+              fix_golang: true,
+              fix_ss_libev: false,
+            }
       max-parallel: 2
       fail-fast: false
 
