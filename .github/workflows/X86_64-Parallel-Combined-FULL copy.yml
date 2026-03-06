@@ -13,26 +13,23 @@ jobs:
     strategy:
       matrix:
         include:
-          - {
-              source_type: "LEDE",
-              repo_url: "https://github.com/coolsnowwolf/lede.git",
-              repo_branch: "master",
-              config: "configs/x86_64.config",
-              diy_script: "diy-full.sh",
-              fix_rust: false,
-              fix_golang: true,
-              fix_ss_libev: false,
-            }
-          - {
-              source_type: "ImmortalWrt",
-              repo_url: "https://github.com/immortalwrt/immortalwrt",
-              repo_branch: "openwrt-25.12",
-              config: "configs/x86_64-immortalWrt.config",
-              diy_script: "diy-full.sh",
-              fix_rust: true,
-              fix_golang: true,
-              fix_ss_libev: false,
-            }
+          - source_type: "LEDE"
+            repo_url: "https://github.com/coolsnowwolf/lede.git"
+            repo_branch: "master"
+            config: "configs/x86_64.config"
+            diy_script: "diy-full.sh"
+            fix_rust: false
+            fix_golang: true
+            fix_ss_libev: false
+
+          - source_type: "ImmortalWrt"
+            repo_url: "https://github.com/immortalwrt/immortalwrt"
+            repo_branch: "openwrt-25.12"
+            config: "configs/x86_64-immortalWrt.config"
+            diy_script: "diy-full.sh"
+            fix_rust: true
+            fix_golang: true
+            fix_ss_libev: false
       max-parallel: 2
       fail-fast: false
 
@@ -43,6 +40,10 @@ jobs:
         uses: actions/checkout@main
 
       - name: 测试
+        env:
+          FIX_RUST: ${{ matrix.fix_rust }}
+          FIX_GOLANG: ${{ matrix.fix_golang }}
+          FIX_SS_LIBEV: ${{ matrix.fix_ss_libev }}
         run: |
           chmod +x $PATCH_SCRIPT
           $PATCH_SCRIPT

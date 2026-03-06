@@ -184,6 +184,12 @@ fix_golang_version() {
 fix_rust_version() {
     local repo_type="${1:-}"
     log_info "修复 rust 版本 (源码类型：${repo_type:-未指定})..."
+    rm -rf feeds/packages/lang/rust
+    if [[ "$repo_type" == "lede" ]]; then
+        git_sparse_clone master https://github.com/openwrt/packages feeds packages/lang lang/rust
+    else
+        git_sparse_clone master https://github.com/openwrt/packages feeds packages/lang lang/rust
+    fi
     
     # TODO: 实现 rust 版本修复逻辑
 }
@@ -193,7 +199,11 @@ fix_rust_version() {
 fix_ss_libev_version() {
     local repo_type="${1:-}"
     log_info "修复 ss-libev 版本 (源码类型：${repo_type:-未指定})..."
-    # TODO: 实现 ss-libev 版本修复逻辑
+    if [[ "$repo_type" == "lede" ]]; then
+        git_sparse_clone master https://github.com/coolsnowwolf/lede package libs package/libs/mbedtls
+    else
+        git_sparse_clone master https://github.com/immortalwrt/immortalWrt package libs package/libs/mbedtls
+    fi
 }
 
 # 克隆 golang 环境
