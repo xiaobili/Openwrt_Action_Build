@@ -186,9 +186,13 @@ fix_rust_version() {
     log_info "修复 rust 版本 (源码类型：${repo_type:-未指定})..."
     rm -rf feeds/packages/lang/rust
     if [[ "$repo_type" == "lede" ]]; then
+        log_info "正在克隆 rust 环境..."
         git_sparse_clone master https://github.com/openwrt/packages feeds packages/lang lang/rust
+        log_info "克隆完成: rust"
     else
+        log_info "正在克隆 rust 环境..."
         git_sparse_clone master https://github.com/openwrt/packages feeds packages/lang lang/rust
+        log_info "克隆完成: rust"
     fi
     
     # TODO: 实现 rust 版本修复逻辑

@@ -83,7 +83,7 @@ jobs:
       matrix:
         include:
           - source_type: "LEDE"
-            repo_url: "https://github.com/coolsnowwolf/lede.git"
+            repo_url: "https://github.com/coolsnowwolf/lede"
             repo_branch: "master"
             config: "configs/x86_64.config"
             diy_script: "diy-full.sh"
