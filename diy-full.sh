@@ -84,17 +84,9 @@ function detect_source_type() {
 
 
 # 添加额外插件（两个源码通用）
-## OAF - OpenAppFilter
-log_info "添加 OpenAppFilter 插件..."
-git clone --depth=1 https://github.com/destan19/OpenAppFilter.git package/OpenAppFilter
-
 ## Openlist - 域名列表管理
 log_info "添加 Openlist 插件..."
 git clone --depth=1 https://github.com/sbwml/luci-app-openlist2.git package/openlist
-
-## netspeedtest - 网络速度测试
-log_info "添加 netspeedtest 插件..."
-git clone --depth=1 https://github.com/sirpdboy/luci-app-netspeedtest.git package/netspeedtest
 
 # 更改Argon 主题背景
 if [[ -f "$GITHUB_WORKSPACE/images/background.jpg" ]] && [[ -d "feeds/luci/themes/luci-theme-argon/htdocs/luci-static/argon/img" ]]; then
@@ -174,18 +166,14 @@ case "$source_type" in
       log_info "警告: 未找到 update-emortal.sh 脚本"
     fi
 
-    ## AdGuardHome
-    log_info "正在添加 AdGuardHome..."
-    git_sparse_clone main https://github.com/kenzok8/small-package luci-app-adguardhome 2>/dev/null || {
-      log_info "警告: git_sparse_clone 失败，尝试直接克隆..."
-      git_sparse_clone openwrt-23.05 https://github.com/coolsnowwolf/luci applications/luci-app-adguardhome 2>/dev/null || true
-    }
 
     ## mosdns
     log_info "清理旧的 mosdns 文件..."
-    find ./ -name "*mosdns*" -type f -name "Makefile" -delete 2>/dev/null || true
+    find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
+    find ./ | grep Makefile | grep mosdns | xargs rm -f
     log_info "添加 mosdns 插件..."
-    git clone --depth=1 https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns 2>/dev/null || true
+    git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
+    git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
 
     # ImmortalWrt 特定配置
     log_info "应用 ImmortalWrt 特定配置..."
