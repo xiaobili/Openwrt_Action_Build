@@ -187,7 +187,7 @@ jobs:
 
       - name: 缓存工具链
         if: env.CACHE_TOOLCHAIN == 'true'
-        uses: HiGarfield/cachewrtbuild@main
+        uses: xiaobili/cachewrtbuild@main
         with:
           ccache: false
           mixkey: ${{ steps.vars.outputs.SOURCE_REPO }}-${{ matrix.repo_branch }}-${{ steps.vars.outputs.DEVICE_TARGET }}-${{ steps.vars.outputs.DEVICE_SUBTARGET }}-FULL
