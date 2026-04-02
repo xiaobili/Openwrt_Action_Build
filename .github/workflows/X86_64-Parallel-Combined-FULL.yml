@@ -171,8 +171,11 @@ jobs:
           cp $GITHUB_WORKSPACE/${{ matrix.config }} .config
           make defconfig > /dev/null 2>&1
           SOURCE_REPO="$(echo ${{ matrix.repo_url }} | awk -F '/' '{print $(NF)}')"
+          REPO_URL="$(echo ${{ matrix.repo_url }})"
           echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_OUTPUT
           echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
+          echo "REPO_URL=$REPO_URL" >> $GITHUB_OUTPUT
+          echo "REPO_URL=$REPO_URL" >> $GITHUB_ENV
           DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
           echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_OUTPUT
           echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV

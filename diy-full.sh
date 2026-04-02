@@ -107,15 +107,14 @@ echo "  SOURCE_REPO='${SOURCE_REPO:-未设置}'"
 echo "  REPO_URL='${REPO_URL:-未设置}'"
 echo "  DEVICE_TARGET='${DEVICE_TARGET:-未设置}'"
 echo "  DEVICE_SUBTARGET='${DEVICE_SUBTARGET:-未设置}'"
-echo "  BUILD_TYPE='${BUILD_TYPE:-未设置}'"
 echo "=========================================="
 
 # 检测源码类型
-source_type=$(detect_source_type)
-log_info "检测到的源码类型: $source_type"
+final_source_type=$(detect_source_type)
+log_info "检测到的源码类型: $final_source_type"
 
 # 根据源码类型执行相应操作
-case "$source_type" in
+case "$final_source_type" in
   "lede")
     log_info "=== 执行 LEDE 源码特定配置 ==="
     # LEDE 源码
