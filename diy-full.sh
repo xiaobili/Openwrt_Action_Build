@@ -48,7 +48,7 @@ function detect_source_type() {
   fi
 
   # 方法2: 使用 SOURCE_REPO 环境变量
-  elif [[ -n "${SOURCE_REPO:-}" ]]; then
+  if [[ -n "${SOURCE_REPO:-}" ]]; then
     if [[ "${SOURCE_REPO}" == *"lede"* ]]; then
       echo "lede"
       return 0
@@ -59,7 +59,7 @@ function detect_source_type() {
   fi
 
   # 方法3: 检查 GITHUB_WORKFLOW 变量
-  elif [[ -n "${GITHUB_WORKFLOW:-}" ]]; then
+  if [[ -n "${GITHUB_WORKFLOW:-}" ]]; then
     if [[ "${GITHUB_WORKFLOW}" == *"LEDE"* ]]; then
       echo "lede"
       return 0
