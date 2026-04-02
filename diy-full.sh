@@ -37,34 +37,34 @@ function detect_source_type() {
   if [[ -n "${SOURCE_TYPE:-}" ]]; then
     case "${SOURCE_TYPE}" in
       "LEDE"|"lede")
-        log_info "lede"
+        echo "lede"
         return 0
         ;;
       "ImmortalWrt"|"immortalwrt")
-        log_info "immortalwrt"
+        echo "immortalwrt"
         return 0
         ;;
     esac
   fi
 
   # 方法2: 使用 SOURCE_REPO 环境变量
-  if [[ -n "${SOURCE_REPO:-}" ]]; then
+  elif [[ -n "${SOURCE_REPO:-}" ]]; then
     if [[ "${SOURCE_REPO}" == *"lede"* ]]; then
-      log_info "lede"
+      echo "lede"
       return 0
     elif [[ "${SOURCE_REPO}" == *"immortalwrt"* ]]; then
-      log_info "immortalwrt"
+      echo "immortalwrt"
       return 0
     fi
   fi
 
   # 方法3: 检查 GITHUB_WORKFLOW 变量
-  if [[ -n "${GITHUB_WORKFLOW:-}" ]]; then
+  elif [[ -n "${GITHUB_WORKFLOW:-}" ]]; then
     if [[ "${GITHUB_WORKFLOW}" == *"LEDE"* ]]; then
-      log_info "lede"
+      echo "lede"
       return 0
     elif [[ "${GITHUB_WORKFLOW}" == *"ImmortalWrt"* ]]; then
-      log_info "immortalwrt"
+      echo "immortalwrt"
       return 0
     fi
   fi
