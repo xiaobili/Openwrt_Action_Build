@@ -167,12 +167,12 @@ case "$final_source_type" in
 
 
     ## mosdns
-    log_info "清理旧的 mosdns 文件..."
-    find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
-    find ./ | grep Makefile | grep mosdns | xargs rm -f
-    log_info "添加 mosdns 插件..."
-    git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
-    git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
+    # log_info "清理旧的 mosdns 文件..."
+    # find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
+    # find ./ | grep Makefile | grep mosdns | xargs rm -f
+    # log_info "添加 mosdns 插件..."
+    # git clone https://github.com/sbwml/luci-app-mosdns -b v5 package/mosdns
+    # git clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
 
     # ImmortalWrt 特定配置
     log_info "应用 ImmortalWrt 特定配置..."
