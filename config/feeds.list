@@ -1,0 +1,14 @@
+# =============================================================================
+# 额外 feed 源
+#
+# 每行一条，格式与 OpenWrt 的 feeds.conf.default 完全一致：
+#     src-git <名称> <仓库地址>;<分支>
+#
+# 构建时由 diy-feeds.sh 把这些行「按顺序前置」到 feeds.conf.default，
+# 已存在的行会被跳过，因此重复执行是幂等的。
+# 以 # 开头的行视为注释。
+# =============================================================================
+
+## 科学上网插件
+src-git passwall_packages https://github.com/Openwrt-Passwall/openwrt-passwall-packages.git;main
+src-git passwall_luci https://github.com/Openwrt-Passwall/openwrt-passwall.git;main

@@ -1,133 +1,137 @@
-#!/bin/bash
-set -o pipefail
+#!/usr/bin/env bash
+# =============================================================================
+# scripts/retry-make.sh —— 带重试的 make 包装
+#
+# 两种模式：
+#   download  执行 make download，除了退出码还会扫描日志里的下载错误
+#             （OpenWrt 的下载失败经常以 exit 0 返回，只能靠日志判断）
+#   nproc     执行 make -j$(nproc)
+#
+# 用法:
+#   scripts/retry-make.sh download [最大重试] [间隔秒]
+#   scripts/retry-make.sh nproc    [最大重试] [间隔秒]
+#
+# 默认值可用 config/build.conf 的 MAKE_RETRIES / MAKE_DOWNLOAD_JOBS 调整。
+# =============================================================================
 
-# OpenWrt编译过程中的重试脚本
-# 支持两种模式：
-#   - download: 用于处理 make download 失败的情况
-#   - nproc: 用于处理 make -j$(nproc) 编译失败的情况
+# 这里不能用 set -e：本脚本的职责就是「失败后重试」
+set -uo pipefail
 
-readonly DEFAULT_MAX_RETRIES=3
-readonly DEFAULT_DOWNLOAD_SLEEP=5
-readonly DEFAULT_NPROC_SLEEP=10
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="${REPO_ROOT:-$(cd "$SCRIPT_DIR/.." && pwd)}"
+export REPO_ROOT
 
-# 下载模式错误检测模式
-readonly DOWNLOAD_ERROR_PATTERNS=(
-  "download failed"
-  "wget returned 8"
-  "curl returned 7"
-  "Hash mismatch"
-  "download.*error"
-  "failed to download source"
-  "source archive.*not found"
-  "connection timed out"
-  "timeout"
-  "certificate verify failed"
-  "failed to build"
-  "ERROR:"
+# shellcheck source=../lib/common.sh
+. "$REPO_ROOT/lib/common.sh"
+# shellcheck source=../lib/config.sh
+. "$REPO_ROOT/lib/config.sh"
+
+DEFAULT_DOWNLOAD_SLEEP=5
+DEFAULT_NPROC_SLEEP=10
+
+# 下载失败的特征（只用足够具体的模式，避免误判）
+DOWNLOAD_ERROR_PATTERNS=(
+  'download failed'
+  'wget returned [1-9]'
+  'curl: \([0-9]+\).*(7|18|28|35|56)\)'
+  'Hash mismatch'
+  'failed to download source'
+  'source archive .* not found'
+  'connection timed out'
+  'Operation timed out'
+  'certificate verify failed'
 )
 
-# 显示用法
 usage() {
-  cat << EOF
-用法: $0 [mode] [max_retries] [sleep_between]
+  cat >&2 <<EOF
+用法: $0 [模式] [最大重试次数] [重试间隔秒]
 
-参数说明:
-  mode           运行模式: 'download' 或 'nproc' (默认: nproc)
-  max_retries    最大重试次数 (默认: $DEFAULT_MAX_RETRIES)
-  sleep_between  重试间隔时间(秒) (download默认: ${DEFAULT_DOWNLOAD_SLEEP}秒, nproc默认: ${DEFAULT_NPROC_SLEEP}秒)
+模式:
+  download   执行 make download -j${MAKE_DOWNLOAD_JOBS:-8}
+  nproc      执行 make -j\$(nproc)   (默认)
 
 示例:
-  $0 download              # 使用默认设置执行 make download
-  $0 nproc 5               # 执行 make -j\$(nproc)，最多重试5次
-  $0 download 3 10         # 执行 make download，最多重试3次，每次间隔10秒
+  $0 download
+  $0 nproc 5
+  $0 download 3 10
 EOF
   exit 1
 }
 
-# 检测下载错误
+# 扫描日志文件中的下载错误；命中返回 1
 check_download_errors() {
-  local output="$1"
-  local pattern
-
+  local log_file="$1" pattern
   for pattern in "${DOWNLOAD_ERROR_PATTERNS[@]}"; do
-    if echo "$output" | grep -qi "$pattern"; then
-      echo "检测到下载错误: $pattern"
+    if grep -qiE -- "$pattern" "$log_file"; then
+      log_warn "检测到下载错误: $pattern"
       return 1
     fi
   done
   return 0
 }
 
-# 主函数
 main() {
-  local mode="${1:-nproc}"
-  local max_retries="${2:-$DEFAULT_MAX_RETRIES}"
-  local sleep_between
-  local command
-  local action_name
+  load_config
 
-  # 根据模式设置参数
+  local mode="${1:-nproc}"
+  local max_retries="${2:-${MAKE_RETRIES:-3}}"
+  local sleep_between action_name
+  local -a cmd=()
+
   case "$mode" in
     download)
       sleep_between="${3:-$DEFAULT_DOWNLOAD_SLEEP}"
-      command="make download -j8"
+      cmd=(make download -j"${MAKE_DOWNLOAD_JOBS:-8}")
       action_name="下载源码包"
       ;;
     nproc)
       sleep_between="${3:-$DEFAULT_NPROC_SLEEP}"
-      command="make -j\$(nproc)"
+      cmd=(make -j"$(nproc)")
       action_name="编译固件"
       ;;
-    *)
-      usage
-      ;;
+    *) usage ;;
   esac
 
-  echo "开始执行 $action_name: $command"
-  echo "运行模式: $mode"
-  echo "最大重试次数: $max_retries"
-  echo "重试间隔: $sleep_between 秒"
+  log_info "开始执行 $action_name: ${cmd[*]}"
+  log_info "最大重试次数: $max_retries，重试间隔: ${sleep_between}s"
 
-  local attempt=0
-  local output
-  local exit_code
+  local attempt=1 rc=0 failure log_file
+  log_file="$(mktemp)"
+  # shellcheck disable=SC2064
+  trap "rm -f '$log_file'" EXIT
 
-  while true; do
-    attempt=$((attempt + 1))
-    echo
-    echo "第 $attempt 次尝试... $(date)"
+  while :; do
+    log_info "第 $attempt 次尝试 $(date '+%F %T')"
 
-    output=$(eval "$command" 2>&1 | tee /dev/stderr)
-    exit_code=${PIPESTATUS[0]}
+    failure=0
+    # 始终把 make 的输出同时打到控制台（CI 实时日志）和本地文件（供错误扫描）
+    "${cmd[@]}" 2>&1 | tee "$log_file"
+    rc=${PIPESTATUS[0]}
 
-    local failure_detected=0
-
-    if [[ "$mode" == "download" ]]; then
-      echo "检查下载错误..."
-      if [[ $exit_code -ne 0 ]] || ! check_download_errors "$output"; then
-        failure_detected=1
-      fi
-    else
-      [[ $exit_code -ne 0 ]] && failure_detected=1
+    if [[ $rc -ne 0 ]]; then
+      failure=1
+    elif [[ "$mode" == "download" ]]; then
+      # 下载失败常见以 exit 0 返回，只能靠日志判断
+      check_download_errors "$log_file" || failure=1
     fi
 
-    if [[ $failure_detected -eq 0 ]]; then
-      echo
-      echo "✅ $action_name 成功完成!"
-      exit 0
+    if [[ $failure -eq 0 ]]; then
+      log_info "$action_name 成功完成"
+      return 0
     fi
 
-    echo
-    echo "❌ 第 $attempt 次尝试失败，退出码: $exit_code"
+    # 日志判定失败但退出码为 0 时，补一个非 0 退出码
+    [[ $rc -eq 0 ]] && rc=1
 
+    log_error "第 $attempt 次尝试失败 (退出码: $rc)"
     if [[ $attempt -ge $max_retries ]]; then
-      echo
-      echo "达到最大重试次数 ($max_retries)，放弃执行。"
-      exit $exit_code
+      log_error "达到最大重试次数 ($max_retries)，放弃"
+      return "$rc"
     fi
 
-    echo "等待 $sleep_between 秒后重试..."
+    log_info "等待 ${sleep_between}s 后重试"
     sleep "$sleep_between"
+    attempt=$((attempt + 1))
   done
 }
 

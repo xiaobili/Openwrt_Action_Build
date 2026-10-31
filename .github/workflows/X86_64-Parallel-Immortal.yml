@@ -1,3 +1,10 @@
+# =============================================================================
+# X86_64-Parallel-Immortal.yml —— 基于 ImmortalWrt 的构建（仅 Full）
+#
+# 构建逻辑全部在 build.yml（workflow_call），本文件只声明触发条件与目标。
+# 默认在 LEDE 工作流完成后自动接续，避免两个源码同时抢 runner 与 Release 名额。
+# =============================================================================
+
 name: X86_64 Combined ImmortalWrt (Parallel)
 
 on:
@@ -8,334 +15,26 @@ on:
     types:
       - completed
 
-env:
-  REPO_URL: https://github.com/immortalwrt/immortalwrt
-  REPO_BRANCH: openwrt-25.12
-  DIY_FEEDS: diy-feeds.sh
-  PATCH_SCRIPT: patch/fix_version_error.sh
-  INIT_SCRIPT: patch/init-settings.sh
-  MAKE_SCRIPT: scripts/retry-make.sh
-  CACHE_TOOLCHAIN: true
-  UPLOAD_BIN_DIR: false
-  FIRMWARE_RELEASE: true
-  FIX_GOLANG: true
-  FIX_RUST: false
-  FIX_SS_LIBEV: false
-  TZ: Asia/Shanghai
+permissions:
+  contents: write
 
 jobs:
-  Prepare:
-    runs-on: ubuntu-22.04
-    name: 准备编译环境
-
-    outputs:
-      commit_author: ${{ steps.git_info.outputs.commit_author }}
-      commit_date: ${{ steps.git_info.outputs.commit_date }}
-      commit_message: ${{ steps.git_info.outputs.commit_message }}
-      commit_hash: ${{ steps.git_info.outputs.commit_hash }}
-
-    steps:
-      - name: 合并磁盘
-        uses: easimon/maximize-build-space@master
-        with:
-          swap-size-mb: 1024
-          temp-reserve-mb: 100
-          root-reserve-mb: 1024
-
-      - name: 磁盘信息
-        run: |
-          set -xe
-          df -H
-
-      - name: 检查
-        uses: actions/checkout@main
-
-      - name: 克隆并获取源码信息
-        id: git_info
-        run: |
-          df -hT $GITHUB_WORKSPACE
-          git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt
-          cd openwrt
-          COMMIT_AUTHOR=$(git show -s --date=short --format="作者: %an")
-          echo "commit_author=$COMMIT_AUTHOR" >> $GITHUB_OUTPUT
-          COMMIT_DATE=$(git show -s --date=short --format="时间: %ci")
-          echo "commit_date=$COMMIT_DATE" >> $GITHUB_OUTPUT
-          COMMIT_MESSAGE=$(git show -s --date=short --format="内容: %s")
-          echo "commit_message=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
-          COMMIT_HASH=$(git show -s --date=short --format="hash: %H")
-          echo "commit_hash=$COMMIT_HASH" >> $GITHUB_OUTPUT
-
-  Build:
-    needs: Prepare
-    runs-on: ubuntu-22.04
-    strategy:
-      matrix:
-        include:
-          - { build_type: 'Full', diy_script: 'diy-full.sh', config: 'configs/x86_64-immortalWrt.config'}
-          - { build_type: 'Mini', diy_script: 'diy-mini.sh', config: 'configs/x86_64-immortalWrt-mini.config'}
-      max-parallel: 2
-      fail-fast: false
-
-    name: 编译 ImmortalWrt ${{ matrix.build_type }} 版本固件
-
-    steps:
-      - name: 检查机器性能
-        run: |
-          echo "警告⚠"
-          echo "分配的服务器性能有限，若选择的插件过多，务必注意CPU性能！"
-          echo -e "已知CPU型号(降序): 7763，8370C，8272CL，8171M，E5-2673\n"
-          echo "--------------------------CPU信息--------------------------"
-          echo "CPU物理数量: $(cat /proc/cpuinfo | grep "physical id" | sort | uniq | wc -l)"
-          echo "CPU核心数量: $(nproc)"
-          echo -e "CPU型号信息:$(cat /proc/cpuinfo | grep -m1 name | awk -F: '{print $2}')\n"
-          echo "--------------------------内存信息--------------------------"
-          echo "已安装内存详细信息:"
-          echo -e "$(sudo lshw -short -C memory | grep GiB)\n"
-          echo "--------------------------硬盘信息--------------------------"
-          echo "硬盘数量: $(ls /dev/sd* | grep -v [1-9] | wc -l)" && df -hT
-      
-      - name: 释放磁盘空间
-        uses: jlumbroso/free-disk-space@main
-        with:
-          tool-cache: false
-          android: true
-          dotnet: true
-          haskell: true
-          large-packages: true
-          docker-images: true
-          swap-storage: true
-
-      - name: 初始化环境
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: |
-          sudo -E apt-get -y update
-          sudo -E systemctl daemon-reload
-          sudo -E apt-get -y autoremove --purge
-          sudo -E apt-get -y clean
-          sudo -E apt-get -y install python3-socks python3-unidecode scdoc ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler flex gawk gcc-multilib g++-multilib gettext genisoimage git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool llvm lrzsz msmtp ninja-build p7zip p7zip-full patch pkgconf python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
-          sudo timedatectl set-timezone "$TZ"
-
-      - name: 合并磁盘
-        uses: easimon/maximize-build-space@master
-        with:
-          swap-size-mb: 1024
-          temp-reserve-mb: 100
-          root-reserve-mb: 1024
-
-      - name: 检查
-        uses: actions/checkout@main
-
-      - name: 克隆仓库
-        id: clone
-        run: |
-          chmod +x $GITHUB_WORKSPACE/scripts/*.sh
-          chmod +x $GITHUB_WORKSPACE/patch/*.sh
-          chmod +x $GITHUB_WORKSPACE/diy-*.sh
-          df -hT $GITHUB_WORKSPACE
-          git clone -b $REPO_BRANCH --single-branch --filter=blob:none $REPO_URL openwrt
-          echo "OPENWRT_PATH=$PWD/openwrt" >> $GITHUB_OUTPUT
-
-      - name: 生成编译变量
-        id: vars
-        run: |
-          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
-          cp $GITHUB_WORKSPACE/${{ matrix.config }} .config
-          make defconfig > /dev/null 2>&1
-          SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
-          echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_OUTPUT
-          echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
-          DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
-          echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_OUTPUT
-          echo "DEVICE_TARGET=$DEVICE_TARGET" >> $GITHUB_ENV
-          DEVICE_SUBTARGET=$(cat .config | grep CONFIG_TARGET_SUBTARGET | awk -F '"' '{print $2}')
-          echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_OUTPUT
-          echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET" >> $GITHUB_ENV
-          if grep -q "^CONFIG_USE_APK=y$" .config; then
-              echo "USE_APK=true" >> $GITHUB_OUTPUT
-          else
-              echo "USE_APK=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: 缓存工具链
-        if: env.CACHE_TOOLCHAIN == 'true'
-        uses: HiGarfield/cachewrtbuild@main
-        with:
-          ccache: false
-          mixkey: ${{ steps.vars.outputs.SOURCE_REPO }}-${{ env.REPO_BRANCH }}-${{ steps.vars.outputs.DEVICE_TARGET }}-${{ steps.vars.outputs.DEVICE_SUBTARGET }}-${{ matrix.build_type }}
-          prefix: ${{ steps.clone.outputs.OPENWRT_PATH }}
-
-      - name: 编辑源
-        id: edit_config
-        run: |
-          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
-          $GITHUB_WORKSPACE/patch/update_eth.sh
-          $GITHUB_WORKSPACE/$DIY_FEEDS
-      - name: 更新源
-        run: |
-          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
-          ./scripts/feeds update -a
-
-      - name: 加载 Patch
-        run: |
-          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
-          $GITHUB_WORKSPACE/$PATCH_SCRIPT
-
-      - name: 安装插件
-        run: |
-          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
-          ./scripts/feeds install -a
-
-      - name: 加载自定义配置
-        run: |
-          [ -e files ] && rm -rf files
-          [ -e $GITHUB_WORKSPACE/files ] && cp -r $GITHUB_WORKSPACE/files ${{ steps.clone.outputs.OPENWRT_PATH }}/files
-          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
-          cp $GITHUB_WORKSPACE/${{ matrix.config }} .config
-          $GITHUB_WORKSPACE/${{ matrix.diy_script }}
-
-      - name: 下载依赖
-        run: |
-          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
-          make defconfig
-          $GITHUB_WORKSPACE/$MAKE_SCRIPT download
-          find dl -size -1024c -exec ls -l {} \;
-          find dl -size -1024c -exec rm -f {} \;
-
-      - name: 编译固件 [${{ matrix.build_type }}]
-        id: compile
-        run: |
-          cd ${{ steps.clone.outputs.OPENWRT_PATH }}
-          mkdir -p files/etc/uci-defaults
-          cp $GITHUB_WORKSPACE/$INIT_SCRIPT files/etc/uci-defaults/99-init-settings
-          echo -e "$(nproc) thread compile"
-          $GITHUB_WORKSPACE/$MAKE_SCRIPT nproc || make -j$(nproc) V=s
-          echo "status=success" >> $GITHUB_OUTPUT
-          echo "DATE=$(date +"%Y-%m-%d %H:%M:%S")" >> $GITHUB_OUTPUT
-          echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_OUTPUT
-
-      - name: 检查磁盘空间
-        if: (!cancelled())
-        run: df -hT
-
-      - name: 整理 ${{ matrix.build_type }} 版本固件
-        id: organize
-        if: steps.compile.outputs.status == 'success'
-        run: |
-          cd ${{ steps.clone.outputs.OPENWRT_PATH }}/bin/targets/*/*
-          cat sha256sums
-          cp ${{ steps.clone.outputs.OPENWRT_PATH }}/.config build-${{ matrix.build_type }}.config
-          if [ "${{ steps.vars.outputs.USE_APK }}" = "true" ]; then
-            mv -f ${{ steps.clone.outputs.OPENWRT_PATH }}/bin/packages/*/*/*.apk packages 2>/dev/null || true
-          else
-            mv -f ${{ steps.clone.outputs.OPENWRT_PATH }}/bin/packages/*/*/*.ipk packages 2>/dev/null || true
-          fi
-          tar -zcf Packages-${{ matrix.build_type }}.tar.gz packages 2>/dev/null || true
-          rm -rf packages feeds.buildinfo version.buildinfo
-          echo "FIRMWARE_PATH=$PWD" >> $GITHUB_OUTPUT
-          echo "BUILD_TYPE=${{ matrix.build_type }}" >> $GITHUB_OUTPUT
-
-      - name: 保存固件至临时目录 (区分版本命名)
-        if: steps.compile.outputs.status == 'success'
-        run: |
-          echo "FIRMWARE_PATH: ${{ steps.organize.outputs.FIRMWARE_PATH }}"
-          echo "检查源目录内容:"
-          ls -lah ${{ steps.organize.outputs.FIRMWARE_PATH }} || echo "源目录不存在"
-
-          mkdir -p $GITHUB_WORKSPACE/firmware/${{ matrix.build_type }}
-          if [ -d "${{ steps.organize.outputs.FIRMWARE_PATH }}" ]; then
-            cd ${{ steps.organize.outputs.FIRMWARE_PATH }}
-            count=0
-            for file in *; do
-              if [ -f "$file" ]; then
-                mv "$file" "$GITHUB_WORKSPACE/firmware/${{ matrix.build_type }}/${{ matrix.build_type }}_$file"
-                count=$((count+1))
-                echo "已移动: $file"
-              fi
-            done
-            echo "共移动 $count 个文件"
-          else
-            echo "错误: FIRMWARE_PATH 目录不存在"
-            exit 1
-          fi
-
-          echo "目标目录内容:"
-          ls -lah $GITHUB_WORKSPACE/firmware/${{ matrix.build_type }} || echo "目标目录为空"
-
-      - name: 上传固件至 Artifact (用于多 Job 间传输)
-        if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE == 'true'
-        uses: actions/upload-artifact@main
-        with:
-          name: firmware-${{ matrix.build_type }}
-          path: ${{github.workspace}}/firmware/${{ matrix.build_type }}
-          retention-days: 1
-
-  Release:
-    needs: [Prepare, Build]
-    runs-on: ubuntu-22.04
-    if: always()
-    name: 统一发布固件至 Release
-
-    steps:
-      - name: 检查 Build 任务状态
-        run: |
-          if [ "${{ needs.Build.result }}" != "success" ]; then
-            echo "Build 任务失败，跳过发布"
-            exit 1
-          fi
-
-      - name: 下载 Full 版本固件
-        uses: actions/download-artifact@main
-        with:
-          name: firmware-Full
-          path: ./firmware-all
-
-      - name: 下载 Mini 版本固件
-        uses: actions/download-artifact@main
-        with:
-          name: firmware-Mini
-          path: ./firmware-all
-
-      - name: 整理固件文件
-        id: release_vars
-        run: |
-          cd $GITHUB_WORKSPACE/firmware-all
-          ls -lah
-          echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_OUTPUT
-          echo "FULL_KERNEL_VERSION=$(jq -r '.linux_kernel.version // "unknown"' Full_profiles.json)" >> $GITHUB_OUTPUT
-          echo "MINI_KERNEL_VERSION=$(jq -r '.linux_kernel.version // "unknown"' Mini_profiles.json)" >> $GITHUB_OUTPUT
-          echo "MINI_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' Mini_profiles.json)" >> $GITHUB_OUTPUT
-          echo "FULL_FIRMWARE_VERSION=$(jq -r '.version_number // "unknown"' Full_profiles.json)" >> $GITHUB_OUTPUT
-      - name: 发布固件至 Release (统一)
-        uses: softprops/action-gh-release@v2
-        with:
-          name: R${{ steps.release_vars.outputs.FILE_DATE }}_ImmortalWrt_Combined
-          tag_name: R${{ steps.release_vars.outputs.FILE_DATE }}_ImmortalWrt_Combined
-          token: ${{ secrets.GH_TOKEN }}
-          files: ${{ github.workspace }}/firmware-all/*
-          body: |
-            **OpenWrt ImmortalWrt Combined Firmware (Parallel Build)**
-            ### 📒 固件信息
-            - 💻 平台架构: x86_64
-            - 📦 编译版本: Full + Mini 组合版本
-            - ⚽ 固件源码: ImmortalWrt
-            - 💝 源码分支: master
-            - 内核版本
-              - Full: ${{ steps.release_vars.outputs.FULL_KERNEL_VERSION }}
-              - Mini: ${{ steps.release_vars.outputs.MINI_KERNEL_VERSION }}
-            - 🌐 默认地址: 192.168.1.1
-            - 🔑 默认密码: 无
-            ### 📋 文件说明
-            - **Full_*** : Full 完整版本固件
-            - **Mini_*** : Mini 精简版本固件
-            ### 🧊 固件版本信息
-            - 固件版本:
-              - Full: ${{ steps.release_vars.outputs.FULL_FIRMWARE_VERSION }}
-              - Mini: ${{ steps.release_vars.outputs.MINI_FIRMWARE_VERSION }}
-            - 固件编译前最后一次 ImmortalWrt 源码更新记录
-            - ${{ needs.Prepare.outputs.commit_author }}
-            - ${{ needs.Prepare.outputs.commit_date }}
-            - ${{ needs.Prepare.outputs.commit_message }}
-            - ${{ needs.Prepare.outputs.commit_hash }}
-
-
+  build:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+    with:
+      cache_action: higarfield
+      release_notes: immortalwrt.md
+      release_suffix: _ImmortalWrt_Combined
+      targets: |
+        [
+          {
+            "source": "ImmortalWrt", "slug": "IMMORTAL",
+            "repo_url": "https://github.com/immortalwrt/immortalwrt",
+            "repo_branch": "openwrt-25.12",
+            "build_type": "Full", "firmware_prefix": "Full",
+            "config": "configs/x86_64-immortalWrt.config",
+            "diy_script": "diy-full.sh",
+            "fix_golang": "true", "fix_rust": "false", "fix_ss_libev": "false"
+          }
+        ]

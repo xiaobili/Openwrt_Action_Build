@@ -1,0 +1,14 @@
+# =============================================================================
+# ImmortalWrt 源码专属插件（所有档位）
+#
+# 清单叠加顺序：common.list → <源码>.list → <档位>.list → <源码>-<档位>.list
+# 指令格式见 config/packages/common.list 顶部说明。
+# =============================================================================
+
+# 说明：AdGuardHome / MosDNS 的克隆指令原在已删除的精简版清单中，现不再安装。
+# 如需启用，按下面的写法追加（AdGuardHome 有两条仓库可互为回退）：
+#
+# sparse main https://github.com/kenzok8/small-package package/luci-app-adguardhome luci-app-adguardhome || \
+#   sparse openwrt-23.05 https://github.com/coolsnowwolf/luci package/applications/luci-app-adguardhome applications/luci-app-adguardhome
+# purge *mosdns*
+# clone https://github.com/sbwml/luci-app-mosdns package/mosdns v5

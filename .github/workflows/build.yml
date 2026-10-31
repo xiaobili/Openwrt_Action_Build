@@ -1,0 +1,400 @@
+# =============================================================================
+# build.yml —— 可复用构建工作流（workflow_call）
+#
+# 三个对外工作流（LEDE / ImmortalWrt / 双源码 FULL）都只是本文件的调用壳：
+# 差异全部通过 inputs.targets 的 matrix 与 Release 说明模板表达。
+#
+# 一个 target 的字段：
+#   source           源码标识，用于 job 名称与日志（LEDE / ImmortalWrt）
+#   slug             环境变量键名前缀（LEDE / IMMORTAL），Release 模板里用
+#                    ${COMMIT_<slug>_AUTHOR} 取值
+#   repo_url         源码仓库
+#   repo_branch      源码分支
+#   build_type       档位名称（Full / FULL），用于 job 名与 artifact 名
+#   firmware_prefix  固件文件名前缀，同时决定 ${KERNEL_<大写字首>} 变量名
+#   config           buildroot .config 相对仓库路径
+#   diy_script       定制脚本（diy-full.sh）
+#   fix_golang / fix_rust / fix_ss_libev   传给 patch/fix_version_error.sh 的开关
+# =============================================================================
+
+name: Build Firmware (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      targets:
+        description: "构建目标矩阵（JSON 数组，元素字段见文件头注释）"
+        required: true
+        type: string
+      release_notes:
+        description: "Release 说明模板名（.github/release-notes/ 下）"
+        required: true
+        type: string
+      release_suffix:
+        description: "Release 名称/tag 后缀，最终 tag = R<构建日期><后缀>"
+        required: true
+        type: string
+      cache_action:
+        description: "工具链缓存 action：higarfield | xiaobili"
+        required: false
+        type: string
+        default: higarfield
+    secrets:
+      GH_TOKEN:
+        required: false
+
+env:
+  DIY_FEEDS: diy-feeds.sh
+  PATCH_SCRIPT: patch/fix_version_error.sh
+  INIT_SCRIPT: patch/init-settings.sh
+  MAKE_SCRIPT: scripts/retry-make.sh
+  CACHE_TOOLCHAIN: "true"
+  FIRMWARE_RELEASE: "true"
+  TZ: Asia/Shanghai
+
+jobs:
+  # ---------------------------------------------------------------- 编译 ----
+  Build:
+    runs-on: ubuntu-22.04
+    name: 编译 ${{ matrix.source }} ${{ matrix.build_type }} 版本固件
+    strategy:
+      max-parallel: 2
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(inputs.targets) }}
+
+    steps:
+      - name: 检查机器性能
+        run: |
+          echo "警告⚠"
+          echo "分配的服务器性能有限，若选择的插件过多，务必注意 CPU 性能！"
+          echo -e "已知 CPU 型号(降序): 7763，8370C，8272CL，8171M，E5-2673\n"
+          echo "--------------------------CPU信息--------------------------"
+          echo "CPU物理数量: $(grep -c "physical id" /proc/cpuinfo)"
+          echo "CPU核心数量: $(nproc)"
+          echo -e "CPU型号信息:$(grep -m1 name /proc/cpuinfo | awk -F: '{print $2}')\n"
+          echo "--------------------------内存信息--------------------------"
+          sudo lshw -short -C memory | grep GiB || true
+          echo "--------------------------硬盘信息--------------------------"
+          df -hT
+
+      - name: 释放磁盘空间
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
+
+      - name: 初始化环境
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo -E apt-get -y update
+          sudo -E systemctl daemon-reload
+          sudo -E apt-get -y autoremove --purge
+          sudo -E apt-get -y clean
+          sudo -E apt-get -y install python3-socks python3-unidecode scdoc ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential bzip2 ccache clang cmake cpio curl device-tree-compiler flex gawk gcc-multilib g++-multilib gettext genisoimage git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev libreadline-dev libssl-dev libtool llvm lrzsz msmtp ninja-build p7zip p7zip-full patch pkgconf python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd zlib1g-dev
+          sudo timedatectl set-timezone "$TZ"
+
+      - name: 合并磁盘
+        uses: easimon/maximize-build-space@master
+        with:
+          swap-size-mb: 1024
+          temp-reserve-mb: 100
+          root-reserve-mb: 1024
+
+      - name: 检查
+        uses: actions/checkout@main
+
+      - name: 克隆源码
+        id: clone
+        run: |
+          chmod +x "$GITHUB_WORKSPACE"/scripts/*.sh "$GITHUB_WORKSPACE"/patch/*.sh "$GITHUB_WORKSPACE"/diy-*.sh
+          df -hT "$GITHUB_WORKSPACE"
+          git clone -b "${{ matrix.repo_branch }}" --single-branch --filter=blob:none \
+            "${{ matrix.repo_url }}" "openwrt"
+          echo "OPENWRT_PATH=$PWD/openwrt" >> "$GITHUB_OUTPUT"
+
+      - name: 生成编译变量
+        id: vars
+        run: |
+          cd "${{ steps.clone.outputs.OPENWRT_PATH }}"
+          cp "$GITHUB_WORKSPACE/${{ matrix.config }}" .config
+          make defconfig > /dev/null 2>&1
+
+          SOURCE_REPO="$(basename "${{ matrix.repo_url }}" .git)"
+          DEVICE_TARGET="$(awk -F '"' '/^CONFIG_TARGET_BOARD/ {print $2}' .config)"
+          DEVICE_SUBTARGET="$(awk -F '"' '/^CONFIG_TARGET_SUBTARGET/ {print $2}' .config)"
+
+          # 统一写到 GITHUB_ENV（历史实现里 LEDE 工作流用 ">" 覆盖写，
+          # 导致只有最后一个变量生效，这里全部改为追加）
+          {
+            echo "SOURCE_TYPE=${{ matrix.source }}"
+            echo "SOURCE_REPO=$SOURCE_REPO"
+            echo "REPO_URL=${{ matrix.repo_url }}"
+            echo "DEVICE_TARGET=$DEVICE_TARGET"
+            echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET"
+          } >> "$GITHUB_ENV"
+
+          {
+            echo "SOURCE_REPO=$SOURCE_REPO"
+            echo "DEVICE_TARGET=$DEVICE_TARGET"
+            echo "DEVICE_SUBTARGET=$DEVICE_SUBTARGET"
+          } >> "$GITHUB_OUTPUT"
+
+          if grep -q '^CONFIG_USE_APK=y$' .config; then
+            echo "USE_APK=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "USE_APK=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 缓存工具链 (HiGarfield)
+        if: env.CACHE_TOOLCHAIN == 'true' && inputs.cache_action == 'higarfield'
+        uses: HiGarfield/cachewrtbuild@main
+        with:
+          ccache: false
+          mixkey: ${{ steps.vars.outputs.SOURCE_REPO }}-${{ matrix.repo_branch }}-${{ steps.vars.outputs.DEVICE_TARGET }}-${{ steps.vars.outputs.DEVICE_SUBTARGET }}-${{ matrix.build_type }}
+          prefix: ${{ steps.clone.outputs.OPENWRT_PATH }}
+
+      - name: 缓存工具链 (xiaobili)
+        if: env.CACHE_TOOLCHAIN == 'true' && inputs.cache_action == 'xiaobili'
+        uses: xiaobili/cachewrtbuild@main
+        with:
+          ccache: false
+          mixkey: ${{ steps.vars.outputs.SOURCE_REPO }}-${{ matrix.repo_branch }}-${{ steps.vars.outputs.DEVICE_TARGET }}-${{ steps.vars.outputs.DEVICE_SUBTARGET }}-${{ matrix.build_type }}
+          prefix: ${{ steps.clone.outputs.OPENWRT_PATH }}
+
+      - name: 编辑源
+        run: |
+          cd "${{ steps.clone.outputs.OPENWRT_PATH }}"
+          "$GITHUB_WORKSPACE/patch/update_eth.sh"
+          "$GITHUB_WORKSPACE/$DIY_FEEDS"
+
+      - name: 更新源
+        run: |
+          cd "${{ steps.clone.outputs.OPENWRT_PATH }}"
+          ./scripts/feeds update -a
+
+      - name: 加载 Patch
+        env:
+          FIX_GOLANG: ${{ matrix.fix_golang }}
+          FIX_RUST: ${{ matrix.fix_rust }}
+          FIX_SS_LIBEV: ${{ matrix.fix_ss_libev }}
+        run: |
+          cd "${{ steps.clone.outputs.OPENWRT_PATH }}"
+          "$GITHUB_WORKSPACE/$PATCH_SCRIPT"
+
+      - name: 安装插件
+        run: |
+          cd "${{ steps.clone.outputs.OPENWRT_PATH }}"
+          ./scripts/feeds install -a
+
+      - name: 加载自定义配置
+        run: |
+          OPENWRT_PATH="${{ steps.clone.outputs.OPENWRT_PATH }}"
+          # 历史实现在 $GITHUB_WORKSPACE 下 rm -rf files，随后又从同一路径拷贝，
+          # 结果自定义 files/ 从未生效；这里改为先拷到目标目录再清理。
+          rm -rf "$OPENWRT_PATH/files"
+          if [ -d "$GITHUB_WORKSPACE/files" ]; then
+            cp -r "$GITHUB_WORKSPACE/files" "$OPENWRT_PATH/files"
+          fi
+          cd "$OPENWRT_PATH"
+          cp "$GITHUB_WORKSPACE/${{ matrix.config }}" .config
+          "$GITHUB_WORKSPACE/${{ matrix.diy_script }}"
+
+      - name: 下载依赖
+        run: |
+          cd "${{ steps.clone.outputs.OPENWRT_PATH }}"
+          make defconfig
+          "$GITHUB_WORKSPACE/$MAKE_SCRIPT" download
+          find dl -size -1024c -exec ls -l {} \;
+          find dl -size -1024c -exec rm -f {} \;
+
+      - name: 编译固件 [${{ matrix.build_type }}]
+        id: compile
+        run: |
+          cd "${{ steps.clone.outputs.OPENWRT_PATH }}"
+          mkdir -p files/etc/uci-defaults
+          cp "$GITHUB_WORKSPACE/$INIT_SCRIPT" files/etc/uci-defaults/99-init-settings
+          echo "$(nproc) thread compile"
+          "$GITHUB_WORKSPACE/$MAKE_SCRIPT" nproc || make -j"$(nproc)" V=s
+          echo "status=success" >> "$GITHUB_OUTPUT"
+          echo "DATE=$(date +"%Y-%m-%d %H:%M:%S")" >> "$GITHUB_OUTPUT"
+          echo "FILE_DATE=$(date +"%Y.%m.%d")" >> "$GITHUB_OUTPUT"
+
+      - name: 检查磁盘空间
+        if: (!cancelled())
+        run: df -hT
+
+      - name: 整理固件
+        id: organize
+        if: steps.compile.outputs.status == 'success'
+        run: |
+          cd "${{ steps.clone.outputs.OPENWRT_PATH }}/bin/targets"/*/*
+          cat sha256sums
+          cp "${{ steps.clone.outputs.OPENWRT_PATH }}/.config" \
+            "build-${{ matrix.source }}-${{ matrix.build_type }}.config"
+          if [ "${{ steps.vars.outputs.USE_APK }}" = "true" ]; then
+            mv -f "${{ steps.clone.outputs.OPENWRT_PATH }}"/bin/packages/*/*/*.apk packages 2>/dev/null || true
+          else
+            mv -f "${{ steps.clone.outputs.OPENWRT_PATH }}"/bin/packages/*/*/*.ipk packages 2>/dev/null || true
+          fi
+          tar -zcf "Packages-${{ matrix.firmware_prefix }}.tar.gz" packages 2>/dev/null || true
+          rm -rf packages feeds.buildinfo version.buildinfo
+          echo "FIRMWARE_PATH=$PWD" >> "$GITHUB_OUTPUT"
+
+      - name: 统一固件命名
+        if: steps.compile.outputs.status == 'success'
+        run: |
+          src="${{ steps.organize.outputs.FIRMWARE_PATH }}"
+          dst="$GITHUB_WORKSPACE/firmware/${{ matrix.source }}-${{ matrix.build_type }}"
+          echo "源目录: $src"
+
+          if [ ! -d "$src" ]; then
+            echo "::error::固件目录不存在: $src"
+            exit 1
+          fi
+
+          mkdir -p "$dst"
+          count=0
+          for file in "$src"/*; do
+            [ -f "$file" ] || continue
+            name="$(basename "$file")"
+            mv "$file" "$dst/${{ matrix.firmware_prefix }}_${name}"
+            count=$((count + 1))
+          done
+          echo "共整理 $count 个文件 -> $dst"
+          ls -lah "$dst"
+
+      - name: 上传固件构件
+        if: steps.compile.outputs.status == 'success' && env.FIRMWARE_RELEASE == 'true'
+        uses: actions/upload-artifact@main
+        with:
+          name: firmware-${{ matrix.source }}-${{ matrix.build_type }}
+          path: ${{ github.workspace }}/firmware/${{ matrix.source }}-${{ matrix.build_type }}
+          retention-days: 1
+
+  # ---------------------------------------------------------------- 发布 ----
+  Release:
+    needs: [Build]
+    runs-on: ubuntu-22.04
+    if: always()
+    name: 统一发布固件至 Release
+
+    steps:
+      - name: 检查 Build 任务状态
+        if: needs.Build.result != 'success'
+        run: |
+          echo "::error::Build 任务未成功（${{ needs.Build.result }}），跳过发布"
+          exit 1
+
+      - name: 检查
+        uses: actions/checkout@main
+
+      - name: 下载全部固件构件
+        uses: actions/download-artifact@main
+        with:
+          pattern: firmware-*
+          path: ./firmware-all
+          merge-multiple: true
+
+      - name: 收集固件元数据
+        id: meta
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE/firmware-all"
+          ls -lah
+
+          FILE_DATE="$(date +"%Y.%m.%d")"
+          echo "FILE_DATE=$FILE_DATE" >> "$GITHUB_OUTPUT"
+
+          # 让发布说明里的默认地址等文案与 config/build.conf 保持一致
+          set -a
+          # shellcheck disable=SC1091
+          . "$GITHUB_WORKSPACE/config/build.conf"
+          set +a
+          echo "DEFAULT_LAN_IP=${DEFAULT_LAN_IP:-192.168.1.1}" >> "$GITHUB_ENV"
+
+          # 每个固件前缀（LEDE / ImmortalWrt 等）分别取内核与固件版本。
+          # 变量名形如 KERNEL_FULL / FIRMWARE_IMMORTALWRT，供说明模板引用。
+          for json in *_profiles.json; do
+            [ -e "$json" ] || continue
+            label="${json%%_*}"
+            suffix="$(echo "$label" | tr '[:lower:]' '[:upper:]')"
+
+            fw_version="$(jq -r '.version_number // "unknown"' "$json" 2>/dev/null || echo unknown)"
+            kernel="$(jq -r '.linux_kernel.version // empty' "$json" 2>/dev/null || true)"
+
+            # 部分源码（如 LEDE）的 profiles.json 不含内核版本，退回到 manifest 解析
+            if [ -z "$kernel" ] || [ "$kernel" = "null" ]; then
+              manifest="$(ls "${label}"_*.manifest 2>/dev/null | head -n 1 || true)"
+              if [ -n "$manifest" ]; then
+                kernel="$(grep '^kernel ' "$manifest" | awk '{split($3, a, "-"); print a[1]"-"a[2]}')"
+              fi
+            fi
+            [ -n "$kernel" ] || kernel="unknown"
+
+            echo "KERNEL_${suffix}=${kernel}" >> "$GITHUB_ENV"
+            echo "FIRMWARE_${suffix}=${fw_version}" >> "$GITHUB_ENV"
+            echo "  $label -> 内核 $kernel / 固件 $fw_version"
+          done
+
+      - name: 收集源码提交信息
+        env:
+          TARGETS: ${{ inputs.targets }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$TARGETS" |
+            jq -r '.[] | [.slug, .repo_url, .repo_branch] | @tsv' |
+            sort -u > /tmp/sources.tsv
+
+          while IFS=$'\t' read -r slug url branch; do
+            [ -n "${slug:-}" ] || continue
+            echo "::group::源码 $slug ($url @ $branch)"
+            work="$(mktemp -d)"
+            if git clone --depth=1 --filter=blob:none --no-checkout \
+              -b "$branch" --single-branch "$url" "$work/src" >/dev/null 2>&1; then
+              author="$(git -C "$work/src" show -s --date=short --format='作者: %an')"
+              commit_date="$(git -C "$work/src" show -s --date=short --format='时间: %ci')"
+              message="$(git -C "$work/src" show -s --format='内容: %s')"
+              hash="$(git -C "$work/src" show -s --format='hash: %H')"
+              echo "$author"
+              echo "$message"
+            else
+              echo "::warning::无法获取 $url 的提交信息"
+              author='作者: unknown'; commit_date='时间: unknown'
+              message='内容: unknown'; hash='hash: unknown'
+            fi
+            {
+              echo "COMMIT_${slug}_AUTHOR=$author"
+              echo "COMMIT_${slug}_DATE=$commit_date"
+              echo "COMMIT_${slug}_MESSAGE=$message"
+              echo "COMMIT_${slug}_HASH=$hash"
+              echo "COMMIT_${slug}_BRANCH=$branch"
+            } >> "$GITHUB_ENV"
+            rm -rf "$work"
+            echo "::endgroup::"
+          done < /tmp/sources.tsv
+
+      - name: 渲染 Release 说明
+        env:
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+        run: |
+          set -euo pipefail
+          bash "$GITHUB_WORKSPACE/scripts/render-template.sh" \
+            "$GITHUB_WORKSPACE/.github/release-notes/$RELEASE_NOTES" \
+            "$GITHUB_WORKSPACE/release-body.md"
+          cat "$GITHUB_WORKSPACE/release-body.md"
+
+      - name: 发布固件至 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: R${{ steps.meta.outputs.FILE_DATE }}${{ inputs.release_suffix }}
+          tag_name: R${{ steps.meta.outputs.FILE_DATE }}${{ inputs.release_suffix }}
+          token: ${{ secrets.GH_TOKEN }}
+          files: ${{ github.workspace }}/firmware-all/*
+          body_path: ${{ github.workspace }}/release-body.md

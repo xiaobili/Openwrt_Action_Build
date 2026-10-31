@@ -1,0 +1,24 @@
+# =============================================================================
+# 通用插件清单 —— 所有源码、所有档位都会安装
+#
+# 指令格式：
+#   clone  <仓库地址> <目标目录> [分支]            浅克隆到目标目录
+#   sparse <分支> <仓库地址> <目标目录> <路径...>   只检出仓库内指定路径
+#   purge  <文件名通配>                            删除匹配到的所有 Makefile
+#   run    <任意 shell 命令>                       在 OpenWrt 源码根目录执行
+#
+# 约定：
+#   * 以 # 开头为注释，支持行尾注释（但不要在 URL 里使用 #）
+#   * 安装失败只告警、不中断构建（与历史行为一致，避免一次网络抖动毁掉整次编译）
+#   * 可用 " || " 连接多条指令，表示「前者失败才执行后者」
+#   * 目标目录相对 OpenWrt 源码根目录
+# =============================================================================
+
+## Openlist —— 网盘挂载
+clone https://github.com/sbwml/luci-app-openlist2.git package/openlist
+
+# --------------------------------------------------------------- 示例 ----
+# 修改 feed 内已有插件的版本号（历史上以注释形式存在于 diy-full.sh，现保留为示例）
+# run sed -i 's/PKG_VERSION:=.*/PKG_VERSION:=main/g' package/feeds/passwall_packages/xray-plugin/Makefile
+# run sed -i 's|PKG_SOURCE_URL:=https://codeload.github.com/teddysun/xray-plugin/tar.gz/v.*|PKG_SOURCE_URL:=https://codeload.github.com/teddysun/xray-plugin/tar.gz/main?|g' package/feeds/passwall_packages/xray-plugin/Makefile
+# run sed -i 's/PKG_HASH:=.*/PKG_HASH:=dbc147d64fa816fad4b02da5528db28b4894327928445a49c39458b23c89e5cb/g' package/feeds/passwall_packages/xray-plugin/Makefile

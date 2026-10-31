@@ -1,0 +1,7 @@
+# ShellCheck 配置
+# 说明：脚本通过 `# shellcheck source=` 指令显式声明依赖的库文件，
+# 因此关闭「未跟踪 source 文件」的提示，避免 CI 上相对路径解析噪声。
+disable=SC1091
+
+# lib/*.sh 是被 source 的库，不会被单独执行，允许只定义函数而不被调用
+# （该告警为 SC2317 / SC2329 一类，在 info 级别，不影响 severity=error 的 CI）

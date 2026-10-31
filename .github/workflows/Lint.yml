@@ -1,0 +1,47 @@
+# =============================================================================
+# Lint.yml —— 脚本静态检查
+#
+# 只拦「会导致运行失败」的问题（severity=error）与纯语法错误，
+# 风格类告警不阻塞构建。
+# =============================================================================
+
+name: Lint
+
+on:
+  push:
+    paths:
+      - "**/*.sh"
+      - ".github/workflows/**"
+      - ".github/release-notes/**"
+      - "config/**"
+      - ".shellcheckrc"
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  shell:
+    runs-on: ubuntu-22.04
+    name: Shell 检查
+
+    steps:
+      - name: 检查
+        uses: actions/checkout@main
+
+      - name: 语法检查 (bash -n)
+        run: |
+          set -uo pipefail
+          fail=0
+          while IFS= read -r file; do
+            echo ">>> $file"
+            bash -n "$file" || fail=1
+          done < <(git ls-files '*.sh')
+          exit "$fail"
+
+      - name: ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: .
+          severity: error
