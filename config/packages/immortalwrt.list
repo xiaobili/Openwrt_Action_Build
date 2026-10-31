@@ -10,5 +10,11 @@
 #
 # sparse main https://github.com/kenzok8/small-package package/luci-app-adguardhome luci-app-adguardhome || \
 #   sparse openwrt-23.05 https://github.com/coolsnowwolf/luci package/applications/luci-app-adguardhome applications/luci-app-adguardhome
-# purge *mosdns*
-# clone https://github.com/sbwml/luci-app-mosdns package/mosdns v5
+
+
+# drop mosdns and v2ray-geodata packages that come with the source
+run find ./ | grep Makefile | grep v2ray-geodata | xargs rm -f
+run find ./ | grep Makefile | grep mosdns | xargs rm -f
+
+clone https://github.com/sbwml/luci-app-mosdns package/mosdns v5
+clone https://github.com/sbwml/v2ray-geodata package/v2ray-geodata
