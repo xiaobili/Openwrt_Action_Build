@@ -32,7 +32,7 @@ jobs:
             "build_type": "FULL", "firmware_prefix": "LEDE",
             "config": "configs/x86_64.config",
             "diy_script": "diy-full.sh",
-            "fix_golang": "true", "fix_rust": "false", "fix_ss_libev": "false"
+            "fix_golang": "false", "fix_rust": "true", "fix_ss_libev": "false"
           },
           {
             "source": "ImmortalWrt", "slug": "IMMORTAL",
@@ -41,6 +41,6 @@ jobs:
             "build_type": "FULL", "firmware_prefix": "ImmortalWrt",
             "config": "configs/x86_64-immortalWrt.config",
             "diy_script": "diy-full.sh",
-            "fix_golang": "true", "fix_rust": "true", "fix_ss_libev": "false"
+            "fix_golang": "false", "fix_rust": "true", "fix_ss_libev": "false"
           }
         ]
