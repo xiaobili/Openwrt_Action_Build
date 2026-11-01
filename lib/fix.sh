@@ -25,6 +25,43 @@ _parse_go_version() {
   printf '%s:%s\n' "${version%.*}" "${version##*.}"
 }
 
+# _extract_go_version <响应体> —— 从两种官方响应里抠出稳定版本号
+#
+# 文本形态（VERSION?m=text）：首行就是 go1.27.3，第二行是发布时间；
+# JSON 形态（dl/?mode=json）：只有 "version": "go1.27.3" 这一处。
+# 抠不出合法版本返回 1，由调用方换下一个端点。
+_extract_go_version() {
+  local body="$1" ver
+  ver="$(printf '%s\n' "$body" | awk 'NF {print $1; exit}')"
+  ver="${ver#go}"
+  if [[ ! "$ver" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+    ver="$(printf '%s\n' "$body" |
+      sed -n 's/.*"version"[[:space:]]*:[[:space:]]*"go\([0-9][0-9.]*\)".*/\1/p' |
+      head -n1)"
+  fi
+  # 只接受纯数字的稳定版；rc/beta 之类一律放弃
+  [[ "$ver" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || return 1
+  printf '%s\n' "$ver"
+}
+
+# go_latest_stable_version —— 取 Go 官方发布的最新稳定版，形如 1.27.3
+#
+# 依次尝试：go.dev 文本端点 -> golang.org 同款端点（换域名绕 DNS/CDN 故障）
+# -> go.dev 发布列表 JSON。全都拿不到可用版本才返回 1。
+go_latest_stable_version() {
+  local url body ver
+  for url in "https://go.dev/VERSION?m=text" \
+    "https://golang.org/VERSION?m=text" \
+    "https://go.dev/dl/?mode=json"; do
+    body="$(curl_retry "$url" 2 2>/dev/null)" || continue
+    if ver="$(_extract_go_version "$body")"; then
+      printf '%s\n' "$ver"
+      return 0
+    fi
+  done
+  return 1
+}
+
 # fix_golang_version <Makefile 路径>
 fix_golang_version() {
   local makefile_path="$1"
@@ -36,22 +73,16 @@ fix_golang_version() {
 
   need_cmd curl || return 1
 
-  # 以 Xray-core 的 go.mod 作为「应该用哪个 Go」的权威来源
-  local go_version_url="https://raw.githubusercontent.com/XTLS/Xray-core/main/go.mod"
-  log_info "获取 Go 版本: $go_version_url"
+  # 以最新稳定版 Go 作为「应该用哪个 Go」的权威来源
+  local go_version_url="https://go.dev/VERSION?m=text"
+  log_info "获取最新稳定版 Go 版本: $go_version_url"
 
-  local go_mod go_version
-  if ! go_mod="$(curl_retry "$go_version_url")"; then
-    log_error "获取 Go 版本失败"
+  local go_version
+  if ! go_version="$(go_latest_stable_version)"; then
+    log_error "获取最新稳定版 Go 版本失败"
     return 1
   fi
-  go_version="$(printf '%s\n' "$go_mod" | awk '/^go / {print $2; exit}')"
-
-  if [[ -z "$go_version" ]]; then
-    log_error "无法从 go.mod 解析 Go 版本"
-    return 1
-  fi
-  log_info "检测到 Go 版本: $go_version"
+  log_info "检测到最新稳定版 Go: $go_version"
 
   local parts major_minor patch
   parts="$(_parse_go_version "$go_version")"
