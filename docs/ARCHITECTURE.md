@@ -23,7 +23,7 @@ lib/
   packages.sh              插件清单 DSL 的解析与执行
   theme.sh                 Argon 主题背景替换
   version.sh               版本号注入（LEDE / ImmortalWrt 两条路径）
-  fix.sh                   golang / rust / mbedtls 版本修复
+  fix.sh                   golang / rust / mbedtls 版本修复；pin_xray_go_version（多版本 golang 钉版本）
 
 scripts/
   diy.sh                   固件定制主流程（唯一实现）
@@ -66,6 +66,7 @@ workflow 入口（X86_64-Parallel-*.yml）
        │   8. feeds install -a
        │   9. diy-full.sh                  ← 转 scripts/diy.sh --profile full
        │        ├─ 阶段 1 插件：common → <source> → <profile> → <source>-<profile>
+       │        │    └─ 之后：pin_xray_go_version（feeds 已 install，给 xray 钉 golangX.Y/host）
        │        ├─ 阶段 2 主题：images/background.jpg → Argon
        │        └─ 阶段 3 版本：LEDE 改 zzz-default-settings / Immortal 调 update-emortal.sh
        │  10. retry-make.sh download / retry-make.sh nproc

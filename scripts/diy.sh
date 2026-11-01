@@ -25,6 +25,8 @@ export REPO_ROOT
 . "$REPO_ROOT/lib/source.sh"
 # shellcheck source=../lib/packages.sh
 . "$REPO_ROOT/lib/packages.sh"
+# shellcheck source=../lib/fix.sh
+. "$REPO_ROOT/lib/fix.sh"
 # shellcheck source=../lib/theme.sh
 . "$REPO_ROOT/lib/theme.sh"
 # shellcheck source=../lib/version.sh
@@ -131,6 +133,10 @@ main() {
   if ! install_profile_packages "$source" "$profile"; then
     log_warn "有插件安装失败，构建继续（与历史行为一致）"
   fi
+
+  # feeds 必须已 install 才有 feeds/<feed>/<pkg>/Makefile；workflow 的「加载 Patch」
+  # 步骤早于 feeds install，所以这类改 feed 包的补丁只能放在这里。
+  pin_xray_go_version
 
   # ---------------------------------------------------------------- 主题 ----
   log_step "阶段 2/3：界面资源"
