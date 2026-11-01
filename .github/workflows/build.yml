@@ -14,7 +14,7 @@
 #   firmware_prefix  固件文件名前缀，同时决定 ${KERNEL_<大写字首>} 变量名
 #   config           buildroot .config 相对仓库路径
 #   diy_script       定制脚本（diy-full.sh）
-#   fix_golang / fix_rust / fix_ss_libev   传给 patch/fix_version_error.sh 的开关
+#   fix_rust / fix_ss_libev   传给 patch/fix_version_error.sh 的开关
 # =============================================================================
 
 name: Build Firmware (Reusable)
@@ -181,7 +181,6 @@ jobs:
 
       - name: 加载 Patch
         env:
-          FIX_GOLANG: ${{ matrix.fix_golang }}
           FIX_RUST: ${{ matrix.fix_rust }}
           FIX_SS_LIBEV: ${{ matrix.fix_ss_libev }}
         run: |

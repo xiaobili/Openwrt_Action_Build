@@ -32,6 +32,6 @@ jobs:
             "build_type": "Full", "firmware_prefix": "Full",
             "config": "configs/x86_64-lede.config",
             "diy_script": "diy-full.sh",
-            "fix_golang": "false", "fix_rust": "true", "fix_ss_libev": "false"
+            "fix_rust": "true", "fix_ss_libev": "false"
           }
         ]

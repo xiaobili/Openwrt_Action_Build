@@ -113,7 +113,7 @@ if command -v jq >/dev/null 2>&1; then
     fi
     missing="$(printf '%s' "$json" | jq -r '
       ["source","slug","repo_url","repo_branch","build_type","firmware_prefix",
-       "config","diy_script","fix_golang","fix_rust","fix_ss_libev"] as $k
+       "config","diy_script","fix_rust","fix_ss_libev"] as $k
       | .[] | . as $t | $k[] | select($t[.] == null) | "\($t.source)/\($t.build_type) 缺 \(.)"')"
     if [[ -n "$missing" ]]; then
       printf '%s  FAIL %s:%s%s\n' "$C_RED" "$wf" "$missing" "$C_RESET" >&2

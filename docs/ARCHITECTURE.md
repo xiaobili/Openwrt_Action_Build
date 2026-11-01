@@ -23,7 +23,7 @@ lib/
   packages.sh              插件清单 DSL 的解析与执行
   theme.sh                 Argon 主题背景替换
   version.sh               版本号注入（LEDE / ImmortalWrt 两条路径）
-  fix.sh                   golang / rust / mbedtls 版本修复；pin_xray_go_version（多版本 golang 钉版本）
+  fix.sh                   rust / mbedtls 版本修复；pin_xray_go_version（多版本 golang 钉版本）
 
 scripts/
   diy.sh                   固件定制主流程（唯一实现）
@@ -187,7 +187,7 @@ target 字段：
 | `firmware_prefix` | 固件文件名前缀，同时决定 `${KERNEL_<大写>}` 变量名 |
 | `config` | buildroot `.config` 路径 |
 | `diy_script` | `diy-full.sh` |
-| `fix_golang` / `fix_rust` / `fix_ss_libev` | 传给 `patch/fix_version_error.sh` 的开关 |
+| `fix_rust` / `fix_ss_libev` | 传给 `patch/fix_version_error.sh` 的开关 |
 
 `uses:` 不允许表达式，所以两种缓存 action 写成两个带 `if` 的步骤。
 
