@@ -30,7 +30,7 @@ jobs:
             "repo_url": "https://github.com/coolsnowwolf/lede",
             "repo_branch": "master",
             "build_type": "FULL", "firmware_prefix": "LEDE",
-            "config": "configs/x86_64.config",
+            "config": "configs/x86_64-lede.config",
             "diy_script": "diy-full.sh",
             "fix_golang": "false", "fix_rust": "true", "fix_ss_libev": "false"
           },
