@@ -20,7 +20,6 @@ jobs:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      cache_action: higarfield
       release_notes: lede.md
       release_suffix: _LEDE_Combined
       targets: |

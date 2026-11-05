@@ -20,7 +20,6 @@ jobs:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      cache_action: xiaobili
       release_notes: full-combined.md
       release_suffix: _LEDE_ImmortalWrt_FULL_Combined
       targets: |

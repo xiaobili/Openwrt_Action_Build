@@ -34,11 +34,6 @@ on:
         description: "Release 名称/tag 后缀，最终 tag = R<构建日期><后缀>"
         required: true
         type: string
-      cache_action:
-        description: "工具链缓存 action：higarfield | xiaobili"
-        required: false
-        type: string
-        default: higarfield
     secrets:
       GH_TOKEN:
         required: false
@@ -153,16 +148,8 @@ jobs:
           fi
 
       - name: 缓存工具链 (HiGarfield)
-        if: env.CACHE_TOOLCHAIN == 'true' && inputs.cache_action == 'higarfield'
+        if: env.CACHE_TOOLCHAIN == 'true'
         uses: HiGarfield/cachewrtbuild@main
-        with:
-          ccache: false
-          mixkey: ${{ steps.vars.outputs.SOURCE_REPO }}-${{ matrix.repo_branch }}-${{ steps.vars.outputs.DEVICE_TARGET }}-${{ steps.vars.outputs.DEVICE_SUBTARGET }}-${{ matrix.build_type }}
-          prefix: ${{ steps.clone.outputs.OPENWRT_PATH }}
-
-      - name: 缓存工具链 (xiaobili)
-        if: env.CACHE_TOOLCHAIN == 'true' && inputs.cache_action == 'xiaobili'
-        uses: xiaobili/cachewrtbuild@main
         with:
           ccache: false
           mixkey: ${{ steps.vars.outputs.SOURCE_REPO }}-${{ matrix.repo_branch }}-${{ steps.vars.outputs.DEVICE_TARGET }}-${{ steps.vars.outputs.DEVICE_SUBTARGET }}-${{ matrix.build_type }}

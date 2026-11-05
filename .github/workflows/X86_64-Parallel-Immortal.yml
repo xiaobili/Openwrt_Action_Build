@@ -23,7 +23,6 @@ jobs:
     uses: ./.github/workflows/build.yml
     secrets: inherit
     with:
-      cache_action: higarfield
       release_notes: immortalwrt.md
       release_suffix: _ImmortalWrt_Combined
       targets: |
