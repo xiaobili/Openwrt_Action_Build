@@ -377,7 +377,7 @@ jobs:
           cat "$GITHUB_WORKSPACE/release-body.md"
 
       - name: 发布固件至 Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: R${{ steps.meta.outputs.FILE_DATE }}${{ inputs.release_suffix }}
           tag_name: R${{ steps.meta.outputs.FILE_DATE }}${{ inputs.release_suffix }}
